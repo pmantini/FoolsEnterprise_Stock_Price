@@ -41,26 +41,35 @@ class Stock:
 
 
         if not self.get_last_date():
-            query_res_data, meta_data = self.query_obj.query(self.stock_sym, update=False)
+            query_res_data = self.query_obj.query(self.stock_sym, update=False)
+            query_res_data = query_res_data.dropna(axis='columns')
 
-            for k in query_res_data.index:
+            for k_ts in query_res_data.index:
+                k = k_ts.date().strftime('%Y-%m-%d')
+                # print(k >= start_date)
                 if k >= start_date:
                     # print(k, query_res_data.loc[k]['1. open'])
-                    data += [{'date': k, 'price': query_res_data.loc[k]['1. open']}]
+                    data += [{'date': k, 'price': query_res_data.loc[k][self.stock_sym+'_Open'][0]}]
+
 
         else:
-            query_res_data, meta_data = self.query_obj.query(self.stock_sym)
+            query_res_data = self.query_obj.query(self.stock_sym)
 
-            for k in query_res_data.index:
+            for k_ts in query_res_data.index:
+                k = k_ts.date().strftime('%m-%d-%Y')
                 if k > self.get_last_date():
-                    data += [{'date': k, 'price': query_res_data.loc[k]['1. open']}]
 
+                    data += [{'date': k, 'price': query_res_data.loc[k][self.stock_sym + '_Open'][0]}]
+        # print(data)
         for item in data:
             try:
+
                 print("Adding %s, %s for %s" % (item['date'], item['price'], self.stock_sym))
                 self.cursor.execute("INSERT INTO %s VALUES (\'%s\',\'%s\')" % (self.table_name, item['date'], item['price']))
             except IntegrityError:
                 print("Date %s already added for %s!" % (item['date'], self.stock_sym))
+
+        print("%s Updated!" % self.stock_sym)
 
 
 

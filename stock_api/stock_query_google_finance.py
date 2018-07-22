@@ -19,10 +19,19 @@ class Stock_Query:
                 'q': "NYA",
                 'x': "INDEXNYSEGIS",
             },
+            # NYSE COMPOSITE (DJ)
+            {
+                'q': "NYA",
+                'x': "NYSE",
+            },
             # S&P 500
             {
                 'q': ".INX",
                 'x': "INDEXSP",
+            },
+            {
+                'q': ".INX",
+                'x': "INDEXCBOE",
             },
             # S&P 500
             {
@@ -40,5 +49,6 @@ class Stock_Query:
 
 
         df = get_prices_time_data(self.param, self.period, self.interval)
-
+        if not df.__len__():
+            print("Query for "+stock_sym+" returned Zero Rows")
         return df

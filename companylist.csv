@@ -84,7 +84,6 @@ BMY,Bristol-Myers Squibb,Health Care
 AVGO,Broadcom,Information Technology
 BF.B,Brown-Forman Corp.,Consumer Staples
 CHRW,C. H. Robinson Worldwide,Industrials
-CA,"CA, Inc.",Information Technology
 COG,Cabot Oil & Gas,Energy
 CDNS,Cadence Design Systems,Information Technology
 CPB,Campbell Soup,Consumer Staples
@@ -322,7 +321,7 @@ MCO,Moodys Corp,Financials
 MS,Morgan Stanley,Financials
 MSI,Motorola Solutions Inc.,Information Technology
 MYL,Mylan N.V.,Health Care
-NDAQ,"Nasdaq, Inc.",Financials
+NDAQ,Nasdaq Inc.,Financials
 NOV,National Oilwell Varco Inc.,Energy
 NAVI,Navient,Financials
 NKTR,Nektar Therapeutics,Health Care
@@ -429,7 +428,7 @@ SNPS,Synopsys Inc.,Information Technology
 SYY,Sysco Corp.,Consumer Staples
 TROW,T. Rowe Price Group,Financials
 TTWO,Take-Two Interactive,Information Technology
-TPR,"Tapestry, Inc.",Consumer Discretionary
+TPR,Tapestry Inc.,Consumer Discretionary
 TGT,Target Corp.,Consumer Discretionary
 TEL,TE Connectivity Ltd.,Information Technology
 FTI,TechnipFMC,Energy
@@ -463,9 +462,9 @@ UNP,Union Pacific,Industrials
 UAL,United Continental Holdings,Industrials
 UNH,United Health Group Inc.,Health Care
 UPS,United Parcel Service,Industrials
-URI,"United Rentals, Inc.",Industrials
+URI,United Rentals Inc.,Industrials
 UTX,United Technologies,Industrials
-UHS,"Universal Health Services, Inc.",Health Care
+UHS,Universal Health Services Inc.,Health Care
 UNM,Unum Group,Financials
 VFC,V.F. Corp.,Consumer Discretionary
 VLO,Valero Energy,Energy

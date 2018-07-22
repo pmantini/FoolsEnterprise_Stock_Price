@@ -16,7 +16,7 @@ stock_list.data_commit()
 
 
 list_of_stocks_to_track = stock_list.list_of_stocks()
-print(list_of_stocks_to_track)
+
 
 for k in list_of_stocks_to_track:
     stock_name = k[0]
