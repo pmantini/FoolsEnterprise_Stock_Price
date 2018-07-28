@@ -4,11 +4,12 @@ import pandas as pd
 
 company_data = pd.read_csv("companylist.csv")
 database_folder = "Databases"
+
 stock_list = Stock_List()
 
-
 for sym,name in zip(company_data.Symbol, company_data.Name):
-    print("Adding %s to list of stocks to track" % (name))
+    stock_list.logger.info("Adding %s to list of stocks to track" % (name))
+    #print("Adding %s to list of stocks to track" % (name))
     database_name = database_folder+"/"+sym+".db"
     stock_list.add_stock(sym, name, database_name)
 

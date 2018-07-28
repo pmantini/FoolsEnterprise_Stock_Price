@@ -1,0 +1,4 @@
+.idea/
+Databases/
+__pycache__/
+stock_api/__pycache__/
