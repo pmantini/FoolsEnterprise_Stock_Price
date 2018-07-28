@@ -1,4 +1,4 @@
-from googlefinance.client import get_price_data, get_prices_data, get_prices_time_data
+from googlefinance.client import get_price_data, get_prices_data, get_prices_time_data, get_open_close_data
 import os
 
 
@@ -49,6 +49,8 @@ class Stock_Query:
 
 
         df = get_prices_time_data(self.param, self.period, self.interval)
+        # df = get_open_close_data(self.param, self.period)
+
         if not df.__len__():
             print("Query for "+stock_sym+" returned Zero Rows")
         return df

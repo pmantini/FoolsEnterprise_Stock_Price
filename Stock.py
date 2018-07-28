@@ -5,6 +5,7 @@ from stock_api.stock_query_google_finance import Stock_Query
 from sqlite3 import IntegrityError
 
 from Hyper_Setup import start_date
+import datetime
 
 class Stock:
     def __init__(self, stock_sym):
@@ -35,32 +36,43 @@ class Stock:
     def data_commit(self):
         self.stocks.commit()
 
+    def is_update_required(self):
+        if not self.get_last_date():
+            True
+        else:
+            if datetime.datetime.today().weekday() == 5:
+                if self.get_last_date() == (datetime.datetime.today() - datetime.timedelta(1)).strftime('%Y-%m-%d'):
+                    return False
+            elif datetime.datetime.today().weekday() == 6:
+                if self.get_last_date() == (datetime.datetime.today() - datetime.timedelta(2)).strftime('%Y-%m-%d'):
+                    return False
+            else:
+                return True
+
 
     def update(self):
         data = []
 
 
-        if not self.get_last_date():
-            query_res_data = self.query_obj.query(self.stock_sym, update=False)
-            query_res_data = query_res_data.dropna(axis='columns')
+        if self.get_last_date():
+            # if self.get_last_date() >= str(datetime.datetime.today()).split()[0]:
+            if not self.is_update_required():
+                print("%s: Already Update, Last entry:  %s!" % (self.stock_sym, self.get_last_date()))
+                return
 
-            for k_ts in query_res_data.index:
-                k = k_ts.date().strftime('%Y-%m-%d')
-                # print(k >= start_date)
-                if k >= start_date:
-                    # print(k, query_res_data.loc[k]['1. open'])
-                    data += [{'date': k, 'price': query_res_data.loc[k][self.stock_sym+'_Open'][0]}]
+        query_res_data = self.query_obj.query(self.stock_sym, update=False)
+        query_res_data = query_res_data.dropna(axis='columns')
 
+        if self.stock_sym + '_Open' not in query_res_data.keys():
+            print("Failed to update %s: Invalid Format!" % self.stock_sym)
+            return
 
-        else:
-            query_res_data = self.query_obj.query(self.stock_sym)
+        for k_ts in query_res_data.index:
+            k = k_ts.date().strftime('%Y-%m-%d')
 
-            for k_ts in query_res_data.index:
-                k = k_ts.date().strftime('%m-%d-%Y')
-                if k > self.get_last_date():
+            if k >= start_date and k > self.get_last_date():
+                data += [{'date': k, 'price': query_res_data.loc[k][self.stock_sym + '_Open'][0]}]
 
-                    data += [{'date': k, 'price': query_res_data.loc[k][self.stock_sym + '_Open'][0]}]
-        # print(data)
         for item in data:
             try:
 
