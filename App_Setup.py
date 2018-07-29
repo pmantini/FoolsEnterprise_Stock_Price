@@ -4,7 +4,7 @@ import pandas as pd
 
 company_data = pd.read_csv("companylist_test.csv")
 database_folder = "Databases"
-stock_list = Stock_List()
+stock_list = Stock_List()git
 
 
 for sym,name in zip(company_data.Symbol, company_data.Name):
