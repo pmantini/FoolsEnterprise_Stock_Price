@@ -2,9 +2,9 @@ from Stock_List import Stock_List
 from Stock import Stock
 import pandas as pd
 
-company_data = pd.read_csv("companylist_test.csv")
-database_folder = "Databases"
-stock_list = Stock_List()
+company_data = pd.read_csv("companylist.csv")
+database_folder = "/nfs/general/Databases"
+stock_list = Stock_List(database_folder)
 
 
 for sym,name in zip(company_data.Symbol, company_data.Name):
