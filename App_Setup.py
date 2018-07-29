@@ -2,7 +2,7 @@ from Stock_List import Stock_List
 from Stock import Stock
 import pandas as pd
 
-company_data = pd.read_csv("companylist.csv")
+company_data = pd.read_csv("companylist_test.csv")
 database_folder = "Databases"
 stock_list = Stock_List()
 
