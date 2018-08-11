@@ -4,7 +4,7 @@ from sqlite3 import IntegrityError
 class Stock_List:
     def __init__(self, db_folder):
         self.database_folder = db_folder
-        self.list_stocks = sqlite3.connect('Databases/list_stocks.db')
+        self.list_stocks = sqlite3.connect(db_folder+'/list_stocks.db')
         self.cursor = self.list_stocks.cursor()
         self.table_name = "list"
         self.cursor.execute("create table if not exists %s (stock_symbol TEXT, stock_name TEXT, database TEXT, CONSTRAINT stock_name_unique UNIQUE (stock_symbol))" % (self.table_name))
