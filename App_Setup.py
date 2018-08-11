@@ -1,14 +1,36 @@
 from Stock_List import Stock_List
 from Stock import Stock
+import logging
+import datetime
+from Hyper_Setup import log_file_name
+
 import pandas as pd
 
 company_data = pd.read_csv("companylist.csv")
 database_folder = "Databases"
 
+# create logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# create console handler
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logger.addHandler(console)
+
+# create file handler
+fh = logging.FileHandler(str(datetime.datetime.now()) + "-" + log_file_name + ".txt")
+fh.setFormatter(formatter)
+logger.addHandler(fh)
+
 stock_list = Stock_List()
 
 for sym,name in zip(company_data.Symbol, company_data.Name):
-    stock_list.logger.info("Adding %s to list of stocks to track" % (name))
+    logger.info("Adding %s to list of stocks to track" % (name))
     #print("Adding %s to list of stocks to track" % (name))
     database_name = database_folder+"/"+sym+".db"
     stock_list.add_stock(sym, name, database_name)

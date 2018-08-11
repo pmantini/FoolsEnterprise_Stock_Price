@@ -1,28 +1,10 @@
 import sqlite3
 from sqlite3 import IntegrityError
 import logging
-from Hyper_Setup import log_file_name
 class Stock_List:
     def __init__(self):
 
-        # create logger
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.INFO)
-
-        # create console handler
-        console = logging.StreamHandler()
-        console.setLevel(logging.INFO)
-
-        # create formatter
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        console.setFormatter(formatter)
-        logger.addHandler(console)
-
-        # create file handler
-        fh = logging.FileHandler(log_file_name)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-        self.logger = logger
+        logger = logging.getLogger(__name__ + " Stock_List")
 
         try:
             self.list_stocks = sqlite3.connect('Databases/list_stocks.db')
@@ -37,10 +19,12 @@ class Stock_List:
         self.list_stocks.commit()
 
     def add_stock(self, stock_sym, stock_name, database_name):
+        logger = logging.getLogger(__name__+ " Stock_List")
+
         try:
             self.cursor.execute("INSERT INTO %s VALUES (\'%s\',\'%s\', \'%s\')" % (self.table_name, stock_sym, stock_name, database_name))
         except IntegrityError:
-            self.logger.info("Stock %s already exitst!" % stock_name)
+            logger.info("Stock %s already exitst!" % stock_name)
             #print("Stock %s already exitst!" % stock_name)
 
 
