@@ -3,8 +3,7 @@ from Stock import Stock
 import pandas as pd
 
 company_data = pd.read_csv("companylist.csv")
-database_folder = "/nfs/general/Databases"
-stock_list = Stock_List(database_folder)
+stock_list = Stock_List()
 
 
 for sym,name in zip(company_data.Symbol, company_data.Name):
