@@ -1,8 +1,8 @@
 import sqlite3
 from sqlite3 import IntegrityError
-
+from Hyper_Setup import db_folder
 class Stock_List:
-    def __init__(self, db_folder):
+    def __init__(self):
         self.database_folder = db_folder
         self.list_stocks = sqlite3.connect(db_folder+'/list_stocks.db')
         self.cursor = self.list_stocks.cursor()
