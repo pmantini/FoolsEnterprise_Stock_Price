@@ -38,6 +38,7 @@ class Stock_Query:
                 'q': ".INX",
                 'x': "NASD",
             }
+
         ]
 
 

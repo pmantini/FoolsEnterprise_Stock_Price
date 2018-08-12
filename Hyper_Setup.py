@@ -1,2 +1,2 @@
-db_folder = '/nsf/general/Databases'
+db_folder = 'Databases'
 start_date = "2008-01-01"
