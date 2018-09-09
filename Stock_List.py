@@ -2,7 +2,8 @@ import sqlite3
 from sqlite3 import IntegrityError
 from Hyper_Setup import db_folder
 import logging
-logger = logging.getLogger("Stock_price")
+from Hyper_Setup import log_file_name_Setup
+logger = logging.getLogger(log_file_name_Setup)
 class Stock_List:
     def __init__(self):
 

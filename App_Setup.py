@@ -2,13 +2,12 @@ from Stock_List import Stock_List
 from Stock import Stock
 import logging
 import datetime
-from Hyper_Setup import log_file_name
 import pandas as pd
-from Hyper_Setup import db_folder
+from Hyper_Setup import db_folder, log_file_name_Setup
 company_data = pd.read_csv("companylist.csv")
 
 # create logger
-logger = logging.getLogger("Stock_price")
+logger = logging.getLogger(log_file_name_Setup)
 logger.setLevel(logging.INFO)
 
 # create console handler
@@ -21,7 +20,7 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 # create file handler
-fh = logging.FileHandler(str(datetime.datetime.now()) + "-" + log_file_name + ".txt")
+fh = logging.FileHandler(str(datetime.datetime.now()) + "-" + log_file_name_Setup + ".txt")
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 

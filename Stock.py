@@ -10,7 +10,8 @@ from sqlite3 import IntegrityError
 from Hyper_Setup import start_date
 import datetime
 
-logger = logging.getLogger("Stock_price")
+from Hyper_Setup import log_file_name_Setup
+logger = logging.getLogger(log_file_name_Setup)
 
 class Stock:
     def __init__(self, stock_sym):
@@ -38,6 +39,24 @@ class Stock:
             return []
         else:
             return last_item[0]
+
+    def fetch_all(self):
+        self.cursor.execute("SELECT * FROM %s ORDER BY date ASC" % self.table_name)
+        all_item = (self.cursor.fetchall())
+
+        if not all_item:
+            return []
+        else:
+            return all_item
+
+    def fetch_latest(self, number_of_records = 1):
+        self.cursor.execute("SELECT * FROM %s ORDER BY date DESC LIMIT %d" % (self.table_name, number_of_records))
+        all_item = (self.cursor.fetchall())
+
+        if not all_item:
+            return []
+        else:
+            return all_item
 
     def data_commit(self):
         self.stocks.commit()

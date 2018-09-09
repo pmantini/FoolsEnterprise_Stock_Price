@@ -3,7 +3,8 @@ from random import choice
 from time import sleep
 import os
 import logging
-logger = logging.getLogger("Stock_price")
+from Hyper_Setup import log_file_name_Setup
+logger = logging.getLogger(log_file_name_Setup)
 
 class Stock_Query:
     def __init__(self):

@@ -1,7 +1,8 @@
 from googlefinance.client import get_price_data, get_prices_data, get_prices_time_data, get_open_close_data
 import os
 import logging
-logger = logging.getLogger("Stock_price")
+from Hyper_Setup import log_file_name_Setup
+logger = logging.getLogger(log_file_name_Setup)
 
 class Stock_Query:
     def __init__(self):
