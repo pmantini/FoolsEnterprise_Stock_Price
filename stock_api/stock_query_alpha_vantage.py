@@ -2,7 +2,9 @@ from alpha_vantage.timeseries import TimeSeries
 from random import choice
 from time import sleep
 import os
-
+import logging
+from Hyper_Setup import log_file_name_Setup
+logger = logging.getLogger(log_file_name_Setup)
 
 class Stock_Query:
     def __init__(self):
@@ -24,8 +26,8 @@ class Stock_Query:
                 query_result = ts.get_daily(symbol=stock_sym, outputsize="full", )
 
         except ValueError:
-            print("Alpha Vantage: Reached Call Frequence Limit")
-            print("Sleeping for %d second!" % self.sleep_time)
+            logger.info("Alpha Vantage: Reached Call Frequence Limit")
+            logger.info("Sleeping for %d second!" % self.sleep_time)
             sleep(self.sleep_time)
             query_result = self.query(stock_sym, update)
 
