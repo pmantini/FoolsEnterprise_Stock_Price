@@ -3,7 +3,7 @@ import sqlite3
 import logging
 
 from Stock_List import  Stock_List
-# from stock_api.stock_query_alpha_vantage import Stock_Query
+from stock_api.stock_query_alpha_vantage import Stock_Query as stock_query_alpha
 from stock_api.stock_query_google_finance import Stock_Query
 from sqlite3 import IntegrityError
 
@@ -23,6 +23,7 @@ class Stock:
         self.table_name = "data"
 
         self.query_obj = Stock_Query()
+        self.query_obj_a = stock_query_alpha()
 
         self.cursor.execute("create table if not exists %s (date TEXT, start_price TEXT, CONSTRAINT stock_date_unique UNIQUE (date))" % (self.table_name))
 
@@ -56,7 +57,46 @@ class Stock:
     def update(self):
         data = []
 
+
+        try:
+            if self.get_last_date():
+                # if self.get_last_date() >= str(datetime.datetime.today()).split()[0]:
+                if not self.is_update_required():
+                    print("%s: Already Update, Last entry:  %s!" % (self.stock_sym, self.get_last_date()))
+                    return
+
+            query_res_data = self.query_obj.query(self.stock_sym, update=False)
+            query_res_data = query_res_data.dropna(axis='columns')
+
+            if self.stock_sym + '_Open' not in query_res_data.keys():
+                print("Failed to update %s: Invalid Format!" % self.stock_sym)
+                return
+
+            for k_ts in query_res_data.index:
+                k = k_ts.date().strftime('%Y-%m-%d')
+
+                if k >= start_date and k > self.get_last_date():
+                    data += [{'date': k, 'price': query_res_data.loc[k][self.stock_sym + '_Open'][0]}]
+
+            for item in data:
+                try:
+
+                    print("Adding %s, %s for %s" % (item['date'], item['price'], self.stock_sym))
+                    self.cursor.execute("INSERT INTO %s VALUES (\'%s\',\'%s\')" % (self.table_name, item['date'], item['price']))
+                except IntegrityError:
+                    print("Date %s already added for %s!" % (item['date'], self.stock_sym))
+
+            print("%s Updated!" % self.stock_sym)
+        except ValueError:
+            print("Failed to update: ", self.stock_sym)
+
+
+    def update_alpha_vantage(self):
+
+        data = []
+
         logger = logging.getLogger(__name__ + " Stock")
+
 
         if self.get_last_date():
             # if self.get_last_date() >= str(datetime.datetime.today()).split()[0]:
@@ -64,30 +104,32 @@ class Stock:
                 logger.info("%s: Already Update, Last entry:  %s!" % (self.stock_sym, self.get_last_date()))
                 return
 
-        query_res_data = self.query_obj.query(self.stock_sym, update=False)
-        query_res_data = query_res_data.dropna(axis='columns')
+        if not self.get_last_date():
+            query_res_data, meta_data = self.query_obj_a.query(self.stock_sym, update=False)
 
-        if self.stock_sym + '_Open' not in query_res_data.keys():
-            logger.error("Failed to update %s: Invalid Format!" % self.stock_sym)
-            return
 
-        for k_ts in query_res_data.index:
-            k = k_ts.date().strftime('%Y-%m-%d')
+            for k in query_res_data.index:
+                if k >= start_date:
+                    # print(k, query_res_data.loc[k]['1. open'])
+                    data += [{'date': k, 'price': query_res_data.loc[k]['1. open']}]
 
-            if k >= start_date and k > self.get_last_date():
-                data += [{'date': k, 'price': query_res_data.loc[k][self.stock_sym + '_Open'][0]}]
+        else:
+            query_res_data, meta_data = self.query_obj_a.query(self.stock_sym)
+
+            for k in query_res_data.index:
+                if k > self.get_last_date():
+                    data += [{'date': k, 'price': query_res_data.loc[k]['1. open']}]
 
         for item in data:
             try:
+
                 logger.info("Adding %s, %s for %s" % (item['date'], item['price'], self.stock_sym))
-                self.cursor.execute("INSERT INTO %s VALUES (\'%s\',\'%s\')" % (self.table_name, item['date'], item['price']))
+                self.cursor.execute(
+                    "INSERT INTO %s VALUES (\'%s\',\'%s\')" % (self.table_name, item['date'], item['price']))
             except IntegrityError:
                 logger.debug("Date %s already added for %s!" % (item['date'], self.stock_sym))
 
         logger.info("%s Updated!" % self.stock_sym)
-
-
-
 
     def close(self):
         self.data_commit()
