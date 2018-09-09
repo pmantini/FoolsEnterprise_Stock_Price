@@ -1,6 +1,7 @@
 from googlefinance.client import get_price_data, get_prices_data, get_prices_time_data, get_open_close_data
 import os
-
+import logging
+logger = logging.getLogger("Stock_price")
 
 class Stock_Query:
     def __init__(self):
@@ -53,5 +54,5 @@ class Stock_Query:
         # df = get_open_close_data(self.param, self.period)
 
         if not df.__len__():
-            print("Query for "+stock_sym+" returned Zero Rows")
+            logger.info("Query for "+stock_sym+" returned Zero Rows")
         return df

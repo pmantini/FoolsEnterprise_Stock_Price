@@ -8,7 +8,7 @@ from Hyper_Setup import db_folder
 company_data = pd.read_csv("companylist.csv")
 
 # create logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Stock_price")
 logger.setLevel(logging.INFO)
 
 # create console handler
