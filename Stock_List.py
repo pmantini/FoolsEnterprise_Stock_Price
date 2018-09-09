@@ -1,8 +1,10 @@
 import sqlite3
 from sqlite3 import IntegrityError
 from Hyper_Setup import db_folder
+import logging
 class Stock_List:
     def __init__(self):
+        logger = logging.getLogger(__name__ + " Stock_List")
         self.database_folder = db_folder
         self.list_stocks = sqlite3.connect(db_folder+'/list_stocks.db')
         self.cursor = self.list_stocks.cursor()
@@ -13,12 +15,13 @@ class Stock_List:
         self.list_stocks.commit()
 
     def add_stock(self, stock_sym, stock_name, database_name):
+        logger = logging.getLogger(__name__+ " Stock_List")
+
         try:
             self.cursor.execute("INSERT INTO %s VALUES (\'%s\',\'%s\', \'%s\')" % (self.table_name, stock_sym, stock_name, database_name))
         except IntegrityError:
-            print("Stock %s already exitst!" % stock_name)
-
-
+            logger.info("Stock %s already exitst!" % stock_name)
+            
     def delete_stock(self, stock_sym):
         self.cursor.execute("DELETE FROM %s WHERE stock_symbol=\'%s\'" % (self.table_name, stock_sym))
 
