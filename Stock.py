@@ -1,4 +1,7 @@
 import sqlite3
+
+import logging
+
 from Stock_List import  Stock_List
 # from stock_api.stock_query_alpha_vantage import Stock_Query
 from stock_api.stock_query_google_finance import Stock_Query
@@ -53,18 +56,19 @@ class Stock:
     def update(self):
         data = []
 
+        logger = logging.getLogger(__name__ + " Stock")
 
         if self.get_last_date():
             # if self.get_last_date() >= str(datetime.datetime.today()).split()[0]:
             if not self.is_update_required():
-                print("%s: Already Update, Last entry:  %s!" % (self.stock_sym, self.get_last_date()))
+                logger.info("%s: Already Update, Last entry:  %s!" % (self.stock_sym, self.get_last_date()))
                 return
 
         query_res_data = self.query_obj.query(self.stock_sym, update=False)
         query_res_data = query_res_data.dropna(axis='columns')
 
         if self.stock_sym + '_Open' not in query_res_data.keys():
-            print("Failed to update %s: Invalid Format!" % self.stock_sym)
+            logger.error("Failed to update %s: Invalid Format!" % self.stock_sym)
             return
 
         for k_ts in query_res_data.index:
@@ -75,13 +79,12 @@ class Stock:
 
         for item in data:
             try:
-
-                print("Adding %s, %s for %s" % (item['date'], item['price'], self.stock_sym))
+                logger.info("Adding %s, %s for %s" % (item['date'], item['price'], self.stock_sym))
                 self.cursor.execute("INSERT INTO %s VALUES (\'%s\',\'%s\')" % (self.table_name, item['date'], item['price']))
             except IntegrityError:
-                print("Date %s already added for %s!" % (item['date'], self.stock_sym))
+                logger.debug("Date %s already added for %s!" % (item['date'], self.stock_sym))
 
-        print("%s Updated!" % self.stock_sym)
+        logger.info("%s Updated!" % self.stock_sym)
 
 
 
