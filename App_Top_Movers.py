@@ -53,4 +53,6 @@ for k in sorted_change:
     logger.info("Adding %s, %s to change database" % (k[0], k[1]))
     cursor.execute("INSERT INTO %s VALUES (\'%s\',\'%s\')" % (table_name, k[0], k[1]))
 
+changed_db.commit()
+
 stock_list.close()
