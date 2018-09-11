@@ -10,7 +10,7 @@ logger = logging.getLogger(log_file_name_Setup)
 class Stock_Query:
     def __init__(self):
         self.list_of_keys = ["XGWCYNOX99ZVR845", "FNWIERCF7YATSTZ2"]
-        self.sleep_time = 60
+        self.sleep_time = 10
 
 
     def get_key(self):
@@ -18,19 +18,17 @@ class Stock_Query:
 
 
 
-    def query(self, stock_sym, update = True):
+    def query(self, stock_syms):
         try:
             ts = TimeSeries(key=self.get_key(), output_format='pandas')
-            if update:
-                query_result = ts.get_daily(symbol=stock_sym, outputsize="compact")
-            else:
-                query_result = ts.get_daily(symbol=stock_sym, outputsize="full", )
+
+            query_result = ts.get_batch_stock_quotes(symbols=stock_syms)
 
         except ValueError:
             logger.info("Alpha Vantage: Reached Call Frequence Limit")
             logger.info("Sleeping for %d second!" % self.sleep_time)
             sleep(self.sleep_time)
-            query_result = self.query(stock_sym, update)
+            query_result = self.query(stock_syms)
 
         return query_result
 

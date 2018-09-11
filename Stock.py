@@ -63,8 +63,11 @@ class Stock:
 
     def is_update_required(self):
         if not self.get_last_date():
-            True
+            return True
         else:
+
+            if datetime.datetime.today().strftime('%Y-%m-%d') == self.get_last_date():
+                return False
             if datetime.datetime.today().weekday() == 5:
                 if self.get_last_date() == (datetime.datetime.today() - datetime.timedelta(1)).strftime('%Y-%m-%d'):
                     return False
@@ -72,6 +75,7 @@ class Stock:
                 if self.get_last_date() == (datetime.datetime.today() - datetime.timedelta(2)).strftime('%Y-%m-%d'):
                     return False
             else:
+
                 return True
 
 
@@ -149,6 +153,41 @@ class Stock:
                 logger.debug("Date %s already added for %s!" % (item['date'], self.stock_sym))
 
         logger.info("%s Updated!" % self.stock_sym)
+
+
+    def append_to_database(self, item):
+        try:
+
+            #Check if update needed
+            if self.get_last_date():
+                # if self.get_last_date() >= str(datetime.datetime.today()).split()[0]:
+                if not self.is_update_required():
+                    print("%s: Already Update, Last entry:  %s!" % (item['symbol'], self.get_last_date()))
+                    return
+            else:
+                print("No Entries in database for %s: Run setup first" % (item['symbol']));
+                return
+
+            if datetime.datetime.strptime(self.get_last_date(), '%Y-%m-%d').weekday() == 4:
+                if datetime.datetime.strptime(item['date'], '%Y-%m-%d') == (datetime.datetime.strptime(self.get_last_date(), '%Y-%m-%d') + datetime.timedelta(3)).strftime('%Y-%m-%d'):
+                    print("Last entry:  %s, Missing dates before: %s!" % (self.get_last_date(), item['date']))
+                    raise ValueError
+
+            elif datetime.datetime.strptime(self.get_last_date(), '%Y-%m-%d') + datetime.timedelta(days=1) != datetime.datetime.strptime(item['date'], '%Y-%m-%d'):
+                print("Last entry:  %s, Missing dates before: %s!" % (self.get_last_date(), item['date']))
+                raise ValueError
+
+            try:
+                print("Adding %s, %s for %s" % (item['date'], item['price'], self.stock_sym))
+                self.cursor.execute(
+                    "INSERT INTO %s VALUES (\'%s\',\'%s\')" % (self.table_name, item['date'], item['price']))
+            except IntegrityError:
+                print("Date %s already added for %s!" % (item['date'], self.stock_sym))
+
+        except ValueError:
+            print("Failed to update: ", self.stock_sym)
+
+
 
     def close(self):
         self.data_commit()
