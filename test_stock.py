@@ -1,7 +1,14 @@
 from Stock import Stock
+from stock_api.batch_query_alpha_vantage import Stock_Query
+from Stock_List import Stock_List
 
+# stock_list = Stock_List()
+# list_of_stocks = stock_list.list_of_stocks()
+# batch = 100
+# stock_name = [k[0] for k in list_of_stocks]
+# test = Stock_Query()
+# print(test.query(stock_name))
 
-stock_name = 'AAPL'
-stock = Stock(stock_name)
-stock.update_alpha_vantage()
-stock.close()
+k = Stock('MMM')
+for l in k.fetch_latest(10):
+    print(l)
