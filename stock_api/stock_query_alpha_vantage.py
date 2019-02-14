@@ -27,7 +27,13 @@ class Stock_Query:
                 query_result = ts.get_daily(symbol=stock_sym, outputsize="full", )
 
         except ValueError:
-            logger.info("Alpha Vantage: Reached Call Frequence Limit")
+            logger.info("ValueError: Alpha Vantage: Reached Call Frequence Limit")
+            logger.info("Sleeping for %d second!" % self.sleep_time)
+            sleep(self.sleep_time)
+            query_result = self.query(stock_sym, update)
+
+        except KeyError:
+            logger.info("KeyError: Alpha Vantage: Reached Call Frequence Limit")
             logger.info("Sleeping for %d second!" % self.sleep_time)
             sleep(self.sleep_time)
             query_result = self.query(stock_sym, update)

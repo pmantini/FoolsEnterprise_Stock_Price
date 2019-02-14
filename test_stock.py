@@ -9,6 +9,9 @@ from Stock_List import Stock_List
 # test = Stock_Query()
 # print(test.query(stock_name))
 
-k = Stock('MMM')
-for l in k.fetch_latest(10):
-    print(l)
+# k = Stock('ATVI')
+# for l in k.fetch_latest(10):
+#     print(l)
+
+k = Stock('AYI')
+k.update_alpha_vantage()

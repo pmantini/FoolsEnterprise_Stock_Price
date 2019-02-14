@@ -43,8 +43,13 @@ def app():
 
     for k in list_of_stocks_to_track:
         stock_name = k[0]
+        logger.info("Querying Alphavantage for %s" % (stock_name))
         stock = Stock(stock_name)
         stock.update_alpha_vantage()
         stock.close()
 
     topmoversapp()
+
+
+if __name__ == "__main__":
+    app()
