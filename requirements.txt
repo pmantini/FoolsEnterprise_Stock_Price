@@ -9,6 +9,7 @@ pandas==0.23.3
 python-dateutil==2.7.3
 pytz==2018.5
 requests==2.19.1
+schedule==0.6.0
 simplejson==3.16.0
 six==1.11.0
 urllib3==1.23
