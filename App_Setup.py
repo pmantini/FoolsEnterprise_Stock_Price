@@ -27,10 +27,18 @@ fh = logging.FileHandler(str(datetime.datetime.now()) + "-" + log_file_name_Setu
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
+company_blacklist = pd.read_csv("blacklist.csv")
+blacklist_symbols = [sym for sym in company_blacklist.Symbol]
+
 def app():
     stock_list = Stock_List()
 
     for sym,name in zip(company_data.Symbol, company_data.Name):
+
+        if sym in blacklist_symbols:
+            logger.info("%s is Blacklisted - Skipping to next" % (name))
+            continue
+
         logger.info("Adding %s to list of stocks to track" % (name))
         database_name = db_folder+"/"+sym+".db"
         stock_list.add_stock(sym, name, database_name)
@@ -42,6 +50,12 @@ def app():
 
 
     for k in list_of_stocks_to_track:
+
+        if k[0] in blacklist_symbols:
+            logger.info("%s is Blacklisted - Skipping to next" % (k[0]))
+            continue
+
+
         stock_name = k[0]
         logger.info("Querying Alphavantage for %s" % (stock_name))
         stock = Stock(stock_name)
