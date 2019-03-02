@@ -61,7 +61,7 @@ def app():
         stock = Stock(stock_name)
         stock.update_alpha_vantage()
         stock.close()
-
+        
     topmoversapp()
 
 

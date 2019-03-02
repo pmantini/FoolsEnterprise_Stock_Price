@@ -30,7 +30,6 @@ def app():
     batch = 100
 
     stock_list = Stock_List()
-    stock_list = Stock_List()
     list_of_stocks = stock_list.list_of_stocks()
 
     list_of_batch_of_stocks = []
@@ -51,3 +50,6 @@ def app():
 
 
     topmoverapp()
+
+if __name__ == "__main__":
+    app()
