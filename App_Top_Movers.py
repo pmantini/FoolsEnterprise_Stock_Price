@@ -2,6 +2,7 @@ import datetime
 import logging
 from Hyper_Setup import db_folder, log_file_name_top_movers
 import sqlite3
+import pandas as pd
 
 # create logger
 logger = logging.getLogger(log_file_name_top_movers)
@@ -25,11 +26,25 @@ logger.addHandler(fh)
 from Stock_List import Stock_List
 from Stock import Stock
 
+company_blacklist = pd.read_csv("blacklist.csv")
+blacklist = [sym for sym in company_blacklist.Symbol]
+
+
 def app():
     stock_list = Stock_List()
     change = []
 
-    for (sym, _, database) in stock_list.list_of_stocks():
+    list_of_stocks = stock_list.list_of_stocks()
+
+    i = 0
+
+    for k in list_of_stocks:
+        if k[0] in blacklist:
+            logger.info("%s is Blacklisted - popping from list" % (k[0]))
+            list_of_stocks.pop(i)
+            i += 1
+
+    for (sym, _, database) in list_of_stocks:
         stock = Stock(sym)
         last_two_records =  stock.fetch_latest(2)
 

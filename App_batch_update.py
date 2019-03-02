@@ -27,7 +27,7 @@ logger.addHandler(fh)
 
 
 company_blacklist = pd.read_csv("blacklist.csv")
-# blacklist = [sym for sym in zip(company_blacklist.Symbol, company_blacklist.Name, company_blacklist.Sector)]
+
 blacklist = [sym for sym in company_blacklist.Symbol]
 
 def app():
