@@ -30,8 +30,11 @@ logger.addHandler(fh)
 company_blacklist = pd.read_csv("blacklist.csv")
 blacklist_symbols = [sym for sym in company_blacklist.Symbol]
 
+
 def app():
     stock_list = Stock_List()
+    for k in blacklist_symbols:
+        logger.info("%s is Blacklisted" % (k))
 
     for sym,name in zip(company_data.Symbol, company_data.Name):
 
