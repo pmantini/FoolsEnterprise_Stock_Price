@@ -26,11 +26,24 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 
+company_blacklist = pd.read_csv("blacklist.csv")
+# blacklist = [sym for sym in zip(company_blacklist.Symbol, company_blacklist.Name, company_blacklist.Sector)]
+blacklist = [sym for sym in company_blacklist.Symbol]
+
 def app():
     batch = 100
 
     stock_list = Stock_List()
     list_of_stocks = stock_list.list_of_stocks()
+
+    i = 0
+
+    for k in list_of_stocks:
+        if k[0] in blacklist:
+            logger.info("%s is Blacklisted - popping from list" % (k[0]))
+            list_of_stocks.pop(i)
+            i +=1
+
 
     list_of_batch_of_stocks = []
     for i in range(0, len(list_of_stocks), batch):
