@@ -13,5 +13,5 @@ from Stock_List import Stock_List
 # for l in k.fetch_latest(10):
 #     print(l)
 
-k = Stock('AYI')
+k = Stock('ANDV')
 k.update_alpha_vantage()
