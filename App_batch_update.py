@@ -42,7 +42,13 @@ def app():
         if k[0] in blacklist:
             logger.info("%s is Blacklisted - popping from list" % (k[0]))
             list_of_stocks.pop(i)
-            i +=1
+
+
+        stock = Stock(k[0])
+        if not stock.is_update_required():
+            logger.info("%s: Already Up to date - popping from list" % (k[0]))
+            list_of_stocks.pop(i)
+        i += 1
 
 
     list_of_batch_of_stocks = []
