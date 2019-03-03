@@ -44,7 +44,11 @@ def app():
             pathname = os.path.join(db_folder+"/", sym+".db")
             logger.info(pathname)
 
+            logger.info("Deleting db %s from %s" % (db_folder + "/" + sym + ".db", "list_stocks.db"))
+            stock_list.delete_stock(sym)
+            
             if os.path.exists(pathname):
+
                 logger.info("Deleting db %s" % (db_folder+"/" + sym+".db"))
                 os.remove(pathname)
             else:

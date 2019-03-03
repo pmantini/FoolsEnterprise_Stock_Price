@@ -67,8 +67,9 @@ def app():
     cursor.execute("create table if not exists %s (stock_symbol TEXT, stock_change TEXT, stock_change_percentage TEXT, CONSTRAINT stock_name_unique UNIQUE (stock_symbol))" % (table_name))
 
     for k in sorted_change:
-        logger.info("Adding %s, %s, %s to change database" % (k[0], k[1], k[2]))
-        cursor.execute("INSERT OR REPLACE INTO %s VALUES (\'%s\',\'%s\',\'%s\')" % (table_name, k[0], k[1], k[2]))
+        if k:
+            logger.info("Adding %s, %s, %s to change database" % (k[0], k[1], k[2]))
+            cursor.execute("INSERT OR REPLACE INTO %s VALUES (\'%s\',\'%s\',\'%s\')" % (table_name, k[0], k[1], k[2]))
 
     changed_db.commit()
     stock_list.close()
