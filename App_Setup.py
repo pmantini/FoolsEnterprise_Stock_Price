@@ -4,6 +4,7 @@ import logging
 import datetime
 import pandas as pd
 from Hyper_Setup import db_folder, log_file_name_Setup
+import os
 
 from App_Top_Movers import app as topmoversapp
 
@@ -40,6 +41,15 @@ def app():
 
         if sym in blacklist_symbols:
             logger.info("%s is Blacklisted - Skipping to next" % (name))
+            pathname = os.path.join(db_folder+"/", sym+".db")
+            logger.info(pathname)
+
+            if os.path.exists(pathname):
+                logger.info("Deleting db %s" % (db_folder+"/" + sym+".db"))
+                os.remove(pathname)
+            else:
+                logger.info("DB %s does not exist" % (db_folder + "/" + sym + ".db"))
+
             continue
 
         logger.info("Adding %s to list of stocks to track" % (name))

@@ -13,6 +13,12 @@ from Stock_List import Stock_List
 # for l in k.fetch_latest(10):
 #     print(l)
 
-k = Stock('AVGO')
+# k = Stock('AAPL')
+# # k.update_alpha_vantage()
 # k.update_alpha_vantage()
-k.update_alpha_vantage()
+
+
+from stock_api.stock_query_alpha_vantage import Stock_Query
+
+test = Stock_Query()
+test.query('DPS')
