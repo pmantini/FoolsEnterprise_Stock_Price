@@ -8,6 +8,6 @@ updateapp()
 
 sched = BlockingScheduler()
 
-sched.scheduled_job(updateapp, 'cron', hour=8, minute=40)
+sched.scheduled_job(updateapp, 'cron', hour=15, minute=00)
 sched.start()
 

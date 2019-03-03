@@ -64,9 +64,6 @@ def app():
     sorted_change = sorted(change,key=lambda k: k[1])
 
 
-
-
-
     cursor.execute("create table if not exists %s (stock_symbol TEXT, stock_change TEXT, stock_change_percentage TEXT, CONSTRAINT stock_name_unique UNIQUE (stock_symbol))" % (table_name))
 
     for k in sorted_change:
