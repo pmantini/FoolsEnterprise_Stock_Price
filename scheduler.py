@@ -1,13 +1,13 @@
-import schedule
-import time
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 from App_Setup import app as setupapp
 from App_batch_update import app as updateapp
 
 setupapp()
+updateapp()
 
-schedule.every().day.at("8:35").do(updateapp)
+sched = BlockingScheduler()
 
-while True:
-    schedule.run_pending()
-    time.sleep(60) # wait one minute
+sched.scheduled_job(updateapp, 'cron', hour=15, minute=00)
+sched.start()
+

@@ -9,7 +9,7 @@ logger = logging.getLogger(log_file_name_Setup)
 
 class Stock_Query:
     def __init__(self):
-        self.list_of_keys = ["XGWCYNOX99ZVR845", "FNWIERCF7YATSTZ2"]
+        self.list_of_keys = ["XGWCYNOX99ZVR845", "FNWIERCF7YATSTZ2", "1Q1IR2N27ZD5UQA9", "H0LCC4BF0DLDMHQQ"]
         self.sleep_time = 60
 
 

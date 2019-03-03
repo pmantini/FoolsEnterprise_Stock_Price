@@ -71,12 +71,12 @@ class Stock:
             if datetime.datetime.today().weekday() == 5:
                 if self.get_last_date() == (datetime.datetime.today() - datetime.timedelta(1)).strftime('%Y-%m-%d'):
                     return False
-            elif datetime.datetime.today().weekday() == 6:
+            if datetime.datetime.today().weekday() == 6:
+
                 if self.get_last_date() == (datetime.datetime.today() - datetime.timedelta(2)).strftime('%Y-%m-%d'):
                     return False
-            else:
 
-                return True
+            return True
 
 
     def update(self):

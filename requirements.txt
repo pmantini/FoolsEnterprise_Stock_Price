@@ -1,4 +1,5 @@
 alpha-vantage==2.0.0
+APScheduler==3.5.3
 certifi==2018.4.16
 chardet==3.0.4
 DateTime==4.2
@@ -9,8 +10,8 @@ pandas==0.23.3
 python-dateutil==2.7.3
 pytz==2018.5
 requests==2.19.1
-schedule==0.6.0
 simplejson==3.16.0
 six==1.11.0
+tzlocal==1.5.1
 urllib3==1.23
 zope.interface==4.5.0
