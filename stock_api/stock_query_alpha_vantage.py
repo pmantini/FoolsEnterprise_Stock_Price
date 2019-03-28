@@ -10,7 +10,7 @@ logger = logging.getLogger(log_file_name_Setup)
 class Stock_Query:
     def __init__(self):
         self.list_of_keys = ["XGWCYNOX99ZVR845", "FNWIERCF7YATSTZ2", "1Q1IR2N27ZD5UQA9", "H0LCC4BF0DLDMHQQ"]
-        self.sleep_time = 60
+        self.sleep_time = 120
 
 
     def get_key(self):
@@ -26,7 +26,7 @@ class Stock_Query:
             else:
                 query_result = ts.get_daily(symbol=stock_sym, outputsize="full", )
             logger.info("Successful query sleeping for %d second!" % self.sleep_time/2)
-            sleep(self.sleep_time/2)
+            sleep(self.sleep_time)
         except ValueError:
             logger.info("ValueError: Alpha Vantage: Reached Call Frequence Limit")
             logger.info("Sleeping for %d second!" % self.sleep_time)
