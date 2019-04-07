@@ -5,4 +5,4 @@ secrets/
 venv/
 __pycache__/
 stock_api/__pycache__/
-
+mount/
