@@ -1,7 +1,7 @@
 import sqlite3
 import os
 from setup import database_folder, db_stock_list
-from FE_Stock.FE_DB_Models.FE_Stock_List import FE_Stock_List
+from .FE_Stock_List import FE_Stock_List
 
 class FE_Stock:
 
