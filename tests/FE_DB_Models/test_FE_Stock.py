@@ -92,6 +92,45 @@ class TestFEStocks(unittest.TestCase):
         self.assertTrue(thrown)
         self.fe_stock.close()
 
+    def test_stock_fetch_row_gets_correct_row_count(self):
+        stock_row = {"date": "2019-3-30", "open": 30.5, "high": 60.5, "low": -10.5, "close": 30.5, "volume": 30000}
+
+        self.fe_stock.init()
+        self.fe_stock.add_stock_row(stock_row)
+
+
+        result = self.fe_stock.fetch_latest(1)
+
+        self.assertTrue(len(result) == 1)
+        self.fe_stock.close()
+
+    def test_stock_fetch_row_gets_correct_row_count_of_2(self):
+        stock_row1 = {"date": "2019-3-30", "open": 30.5, "high": 60.5, "low": -10.5, "close": 30.5, "volume": 30000}
+        stock_row2 = {"date": "2019-4-01", "open": 30.5, "high": 60.5, "low": -10.5, "close": 30.5, "volume": 30000}
+
+        self.fe_stock.init()
+        self.fe_stock.add_stock_row(stock_row1)
+        self.fe_stock.add_stock_row(stock_row2)
+
+        result = self.fe_stock.fetch_latest(2)
+
+        self.assertTrue(len(result) == 2)
+        self.fe_stock.close()
+
+    def test_stock_fetch_last_day_gets_correct_date(self):
+        stock_row1 = {"date": "2019-3-30", "open": 30.5, "high": 60.5, "low": -10.5, "close": 30.5, "volume": 30000}
+        stock_row2 = {"date": "2019-4-01", "open": 30.5, "high": 60.5, "low": -10.5, "close": 30.5, "volume": 30000}
+
+        self.fe_stock.init()
+        self.fe_stock.add_stock_row(stock_row1)
+        self.fe_stock.add_stock_row(stock_row2)
+
+        result = self.fe_stock.get_last_date()
+
+        self.assertTrue(result == stock_row2["date"])
+        self.fe_stock.close()
+
+
     def tearDown(self):
         # self.cursor.execute("DROP TABLE IF EXISTS %s" % (self.test_table_name))
         self.db.commit()

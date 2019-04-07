@@ -4,8 +4,7 @@ from FE_Stock.FE_DB_Models.FE_Stock_List import FE_Stock_List
 from FE_Stock.FE_DB_Models.FE_Stock import FE_Stock
 from FE_Stock.FE_Quandl.FE_Quandl import FE_Quandl
 from setup import database_folder, db_stock_list, table_name
-from setup import quandl_api_key_file, start_date
-import time
+from setup import quandl_api_key_file
 
 class app_setup:
     def __init__(self, companylist, blacklist):
@@ -16,18 +15,22 @@ class app_setup:
         self.fe_quandl = FE_Quandl(quandl_api_key_file)
 
     def load_csv(self, filename):
-        return pd.read_csv(filename)
+        data = pd.read_csv(filename)
+
+        for ind, sym, name in zip(data.index, data.Symbol, data.Name):
+
+            if "." in sym:
+                print("Replacing %s symbol with %s" % (data.loc[ind].Symbol, data.loc[ind].Symbol.replace(".", "_")))
+                data.loc[ind].Symbol = data.loc[ind].Symbol.replace(".", "_")
+
+        return data
 
     def get_company_list(self):
         blacklist_symbols = [sym for sym in self.list_of_black.Symbol]
         for ind, sym, name in zip(self.list_of_company.index, self.list_of_company.Symbol, self.list_of_company.Name):
-            if "." in sym:
-                print("Replacing %s symbol with %s" % (self.list_of_company.loc[ind].Symbol, self.list_of_company.loc[ind].Symbol.replace(".", "_")))
-                self.list_of_company.loc[ind].Symbol = self.list_of_company.loc[ind].Symbol.replace(".", "_")
-
             if sym in blacklist_symbols:
                 print("Blacklisted: Popping %s")
-                self.list_of_company.drop(ind)
+                self.list_of_company = self.list_of_company.drop(ind)
 
         return self.list_of_company
 

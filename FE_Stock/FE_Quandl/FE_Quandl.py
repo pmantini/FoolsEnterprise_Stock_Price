@@ -14,3 +14,7 @@ class FE_Quandl:
     def get(self, stock_symbol):
         data = quandl.get(self.data_stream+stock_symbol, api_key=self.get_qunadl_key(), start_date=start_date)
         return data
+
+    def filter(self, stock_symbol, start_date):
+        data = quandl.get(self.data_stream+stock_symbol, api_key=self.get_qunadl_key(), start_date=start_date)
+        return data

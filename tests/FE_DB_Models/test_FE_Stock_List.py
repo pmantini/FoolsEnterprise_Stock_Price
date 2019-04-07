@@ -135,6 +135,27 @@ class TestFEStockList(unittest.TestCase):
         self.assertTrue(list(result) == stock)
         self.fe_stock_list.close()
 
+    def test_get_stock_returns_none_if_does_not_exist(self):
+
+        stock = ["sym", "name"]
+        table_prefix = "table_"
+        stock.append(table_prefix + stock[0])
+
+        self.cursor.execute(
+            "create table if not exists %s (stock_symbol VARCHAR(10), stock_name TEXT, table_name TEXT, CONSTRAINT stock_name_unique UNIQUE (stock_symbol))" % (
+                self.test_table_name))
+        self.cursor.execute(
+            "insert into %s (stock_symbol, stock_name, table_name) values (\'%s\', \'%s\', \'%s\')" % (
+            self.test_table_name, stock[0], stock[1], stock[2]))
+        self.db.commit()
+
+        self.fe_stock_list.init(self.test_table_name)
+        result = self.fe_stock_list.get_stocks("doesnotexis")
+
+        self.assertTrue(result is None)
+        self.fe_stock_list.close()
+
+
     def test_list_stock_returns_correct_row_count(self):
 
         stock1 = ["sym1", "name1", "table1"]
