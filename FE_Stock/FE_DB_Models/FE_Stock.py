@@ -32,6 +32,14 @@ class FE_Stock:
         except Exception as e:
             raise e
 
+    def delete_stock_row(self, date):
+        print("Deleting: ", date)
+        try:
+            self.cursor.execute("delete from %s where date=\'%s\'" % (self.table_name, date))
+        except Exception as e:
+            raise e
+
+
     def fetch_latest(self, number_of_records=1):
         self.cursor.execute("SELECT * FROM %s ORDER BY date DESC LIMIT %d" % (self.table_name, number_of_records))
         all_item = (self.cursor.fetchall())
