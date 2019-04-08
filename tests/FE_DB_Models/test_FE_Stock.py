@@ -130,6 +130,21 @@ class TestFEStocks(unittest.TestCase):
         self.assertTrue(result == stock_row2["date"])
         self.fe_stock.close()
 
+    def test_delete_row_deletes_row(self):
+        stock_row1 = {"date": "2019-3-30", "open": 30.5, "high": 60.5, "low": -10.5, "close": 30.5, "volume": 30000}
+        stock_row2 = {"date": "2019-4-01", "open": 30.5, "high": 60.5, "low": -10.5, "close": 30.5, "volume": 30000}
+
+        self.fe_stock.init()
+        self.fe_stock.add_stock_row(stock_row1)
+        self.fe_stock.add_stock_row(stock_row2)
+
+        self.fe_stock.delete_stock_row(stock_row1["date"])
+        self.fe_stock.close()
+
+        self.cursor.execute("SELECT * from %s Where date=\'%s\'" % (self.stock_table_name, stock_row1["date"]))
+        result = self.cursor.fetchone()
+        self.assertTrue(result is None)
+
 
     def tearDown(self):
         # self.cursor.execute("DROP TABLE IF EXISTS %s" % (self.test_table_name))

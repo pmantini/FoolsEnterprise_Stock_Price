@@ -8,7 +8,7 @@ from App_Utils import is_update_required
 
 
 class app_update:
-    def __init__(self, companylist, blacklist):
+    def __init__(self, companylist, blacklist, re_update = 0):
         self.list_of_company = self.load_csv(companylist)
         self.list_of_black = self.load_csv(blacklist)
 
@@ -17,6 +17,8 @@ class app_update:
 
         self.fe_stock_list = FE_Stock_List()
         self.fe_stock_list.init(table_name)
+
+        self.re_update = re_update
 
     def load_csv(self, filename):
         data = pd.read_csv(filename)
@@ -102,7 +104,25 @@ class app_update:
                 fe_stock.close()
             else:
                 print("%s is already Up to date, last date: %s" % (stock_sym, last_date))
+                if self.re_update:
+                    print("re_update flag set to True")
+                    data = fe_quandl.filter(stock_sym, last_date)
 
+                    for ind in data.index:
+                        stock_row = {"date": str(ind).split(" ")[0]}
+                        stock_row["open"] = data.loc[ind]['Open']
+                        stock_row["high"] = data.loc[ind]['High']
+                        stock_row["low"] = data.loc[ind]['Low']
+                        stock_row["close"] = data.loc[ind]['Close']
+                        stock_row["volume"] = data.loc[ind]['Volume']
+                        try:
+                            print("Deleting row %s" % stock_row["date"])
+                            fe_stock.delete_stock_row(stock_row["date"])
+
+                            fe_stock.add_stock_row(stock_row)
+                            print("Added %s for %s" % (stock_row["date"], stock_sym))
+                        except:
+                            print("Date %s exists for %s" % (stock_row["date"], stock_sym))
 
 
 
@@ -116,8 +136,11 @@ if __name__ == "__main__":
                         help="specify the name of the file with list of stocks", metavar="LIST", default="companylist.csv")
     parser.add_argument("-b", "--black-list", dest="black_list",
                         help="specify the name of the file with list of blacklisted stocks", metavar="BLACKLIST", default="blacklist.csv")
+    parser.add_argument("-ru", "--re-update", dest="re_update",
+                        help="specify if the last row needs to be updated", metavar="REUPDATE",
+                        default=0)
 
     args = parser.parse_args()
 
-    app = app_update(args.list, args.black_list)
+    app = app_update(args.list, args.black_list, int(args.re_update))
     app.run()
