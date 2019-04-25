@@ -8,7 +8,6 @@ mirakuru==1.1.0
 more-itertools==5.0.0
 nose==1.3.7
 numpy==1.16.2
-pandas==0.24.2
 pathlib2==2.3.3
 pluggy==0.9.0
 port-for==0.4
@@ -22,3 +21,9 @@ Quandl==3.4.6
 requests==2.21.0
 six==1.12.0
 urllib3==1.24.1
+tensorflow-gpu>=1.8,<=1.9
+Keras>=2.0.4,<3.0
+h5py>=2.7.0,<3.0
+pandas>=0.18.0,<1.0
+numexpr>=2.4.6,<3.0
+setuptools<=39.1.0
