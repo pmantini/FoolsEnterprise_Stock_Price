@@ -39,6 +39,17 @@ class FE_Stock:
         except Exception as e:
             raise e
 
+    def fetch_all(self, column):
+        if column == "all":
+            self.cursor.execute("SELECT * FROM %s" % (self.table_name))
+        else:
+            self.cursor.execute("SELECT %s, %s FROM %s" % ("date", column, self.table_name))
+        all_item = (self.cursor.fetchall())
+
+        if not all_item:
+            return []
+        else:
+            return all_item
 
     def fetch_latest(self, number_of_records=1):
         self.cursor.execute("SELECT * FROM %s ORDER BY date DESC LIMIT %d" % (self.table_name, number_of_records))
