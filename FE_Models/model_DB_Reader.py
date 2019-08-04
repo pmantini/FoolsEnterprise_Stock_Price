@@ -42,6 +42,12 @@ class DB_Ops:
 
         return [float(k[1]) for k in all_items], [k[0] for k in all_items]
 
+    def get_values_company_by_date(self, company_sym, date, columns = "close"):
+        feStock = FE_Stock(company_sym, table_name)
+        all_items = feStock.fetch_by_date(date, columns)
+
+        return [float(k[1]) for k in all_items], [k[0] for k in all_items]
+
 
     def get_max_rows(self):
         return self.max_rows

@@ -91,8 +91,6 @@ if __name__ == '__main__':
             logging.warning("%s is a not a valid optional arguement", argument)
 
 
-
-
     if args.task == "train_eval":
         logging.info("Begin_training")
         model_obj.do_init(args.model_arg)

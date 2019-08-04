@@ -51,6 +51,19 @@ class FE_Stock:
         else:
             return all_item
 
+    def fetch_by_date(self, date, column):
+
+        if column == "all":
+            self.cursor.execute("SELECT * FROM %s where date=\"%s\"" % (self.table_name, date))
+        else:
+            self.cursor.execute("SELECT %s, %s FROM %s where date=\"%s\"" % ("date", column, self.table_name, date))
+        all_item = (self.cursor.fetchall())
+
+        if not all_item:
+            return []
+        else:
+            return all_item
+
     def fetch_latest(self, number_of_records=1):
         self.cursor.execute("SELECT * FROM %s ORDER BY date DESC LIMIT %d" % (self.table_name, number_of_records))
         all_item = (self.cursor.fetchall())
