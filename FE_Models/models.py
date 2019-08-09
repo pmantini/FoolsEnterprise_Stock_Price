@@ -280,10 +280,11 @@ class markov1(FEModel):
         from sklearn.metrics import accuracy_score
 
         eval_iter = 0
+        company_list = self.db.get_list_companies()
         all_returns = []
         for y_true, y_pred in zip(eval_classes, eval_pred):
-
-            output[eval_iter] = {"accuracy": accuracy_score(y_true, y_pred)}
+            comp = company_list[eval_iter]
+            output[comp] = {"accuracy": accuracy_score(y_true, y_pred)}
 
             returns, returns2, returns3, returns4 = [], [], [], []
 
@@ -295,9 +296,9 @@ class markov1(FEModel):
                         all_returns += [eval_value]
 
                 if returns:
-                    output[eval_iter]["returns"+str(class_th)] = np.mean(returns)
+                    output[comp]["returns"+str(class_th)] = np.mean(returns)
                 else:
-                    output[eval_iter]["returns" + str(class_th)] = 0
+                    output[comp]["returns" + str(class_th)] = 0
 
             eval_iter += 1
 
@@ -307,6 +308,7 @@ class markov1(FEModel):
 
         output["overall"] = {"accuracy": accuracy_score(y_true, y_pred)}
         # print(output)
+
 
         for k in output:
             print(output[k])
@@ -325,10 +327,12 @@ class markov1(FEModel):
         pred_pred = dict()
 
         i = 0
+        company_list = self.db.get_list_companies()
         last_date = datetime.datetime.strptime(dates[1], "%Y-%m-%d")
         predict_date = last_date + datetime.timedelta(days=1)
         for pred_element in pred_classes:
-            pred_pred[i] = {"date": str(predict_date).split(" ")[0]}
+            comp = company_list[i]
+            pred_pred[comp] = {"date": str(predict_date).split(" ")[0]}
             initial_state = pred_element[0]
             this_trans = transision_matrix[i]
             this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
@@ -338,11 +342,12 @@ class markov1(FEModel):
 
             for pty in trans_cumsum[initial_state]:
                 if randomvalue < pty:
-                    pred_pred[i]["prediction"] = class_iter
+                    pred_pred[comp]["prediction"] = class_iter
                     # pred_pred[i] = class_iter
                     break
                 class_iter += 1
             i += 1
+
 
         print(pred_pred)
         self.save_pred_output(pred_pred)
