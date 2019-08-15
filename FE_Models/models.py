@@ -18,6 +18,8 @@ import logging
 import os
 import shutil
 
+from FE_Models.strategy import Strategy
+
 logging = logging.getLogger("main")
 
 
@@ -154,9 +156,11 @@ class markov1(FEModel):
             values[i, max_items - len(values_fetch):max_items] = values_fetch
             i += 1
 
+
         dates = dates_fetch[-self.days_to_eval:]
 
-        eval_samples = values[:, -self.days_to_eval:]
+        eval_samples = values[:, -self.days_to_eval-1:]
+        prices = eval_samples[:, 1:]
 
         eval_samples = (eval_samples[:, 1:] - eval_samples[:, 0:-1]) / eval_samples[:, 0:-1]
 
@@ -164,7 +168,7 @@ class markov1(FEModel):
         eval_samples[np.isnan(eval_samples)] = 0
         eval_samples[np.isinf(eval_samples)] = 0
 
-        return eval_samples, dates
+        return eval_samples, dates, prices
 
     def generate_pred_data(self, column = "open"):
         company_list = self.db.get_list_companies()
@@ -183,7 +187,8 @@ class markov1(FEModel):
             values[i, max_items - len(values_fetch):max_items] = values_fetch
             i += 1
 
-        dates = dates_fetch[-2:]
+        dates = dates_fetch[-1:]
+        prices = values[:, -1:]
 
         pred_samples = values[:, -2:]
 
@@ -195,7 +200,7 @@ class markov1(FEModel):
 
         # print(pred_samples)
 
-        return pred_samples, dates
+        return pred_samples, dates, prices
 
 
 
@@ -218,7 +223,7 @@ class markov1(FEModel):
     def do_train(self):
 
         #get data
-        train_data = self.generate_train_data(column="open")
+        train_data = self.generate_train_data(column="close")
 
         number_of_classes = 6
 
@@ -245,7 +250,7 @@ class markov1(FEModel):
         # evaluation
         transision_matrix = self.load_model()
 
-        eval_data, dates = self.generate_eval_data()
+        eval_data, dates, prices = self.generate_eval_data(column="close")
 
         eval_classes = self.get_class(eval_data)
         eval_pred = np.zeros(eval_classes.shape, dtype=np.int)
@@ -260,24 +265,27 @@ class markov1(FEModel):
                     eval_pred[i, j] = initial_state
 
                 this_trans = transision_matrix[i]
+                eval_pred[i, j] = self.predict_next_state(initial_state, this_trans)
 
-                this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
-
-                trans_cumsum = np.cumsum(this_trans, axis=1)
-
-                randomvalue = np.random.random()
-
-                class_iter = 0
-                for pty in trans_cumsum[initial_state]:
-                    if randomvalue < pty:
-                        eval_pred[i, j] = class_iter
-                        break;
-                    class_iter += 1
+                # this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
+                #
+                # trans_cumsum = np.cumsum(this_trans, axis=1)
+                #
+                # randomvalue = np.random.random()
+                #
+                # class_iter = 0
+                # for pty in trans_cumsum[initial_state]:
+                #     if randomvalue < pty:
+                #         eval_pred[i, j] = class_iter
+                #         break;
+                #     class_iter += 1
                 j += 1
             i += 1
 
         output = dict()
         from sklearn.metrics import accuracy_score
+
+        confidence = []
 
         eval_iter = 0
         company_list = self.db.get_list_companies()
@@ -285,7 +293,7 @@ class markov1(FEModel):
         for y_true, y_pred in zip(eval_classes, eval_pred):
             comp = company_list[eval_iter]
             output[comp] = {"accuracy": accuracy_score(y_true, y_pred)}
-
+            confidence += [output[comp]["accuracy"]]
             returns, returns2, returns3, returns4 = [], [], [], []
 
             for class_th in [2, 3, 4]:
@@ -307,20 +315,71 @@ class markov1(FEModel):
 
 
         output["overall"] = {"accuracy": accuracy_score(y_true, y_pred)}
+
         # print(output)
 
+        # for k in output:
+        #     print(output[k])
 
-        for k in output:
-            print(output[k])
+        # self.save_eval_output(output)
 
+        #Run Strategies
+        eval_pred_transpose = eval_pred.T
+        price_transpose = prices.T
+        strategy_obj = Strategy()
+
+        nextday_change = eval_data.T[1:]
+        profits = []
+        resource = 5000
+        for predicted, price, next_change in zip(eval_pred_transpose, price_transpose, nextday_change):
+            choices, qunatities = strategy_obj.linear_problem(predicted, price, confidence, resource=resource)
+            sum = 0
+            # print(next_change)
+
+            for k in enumerate(choices):
+                sum += price[k[1]]* next_change[k[1]] * qunatities[k[0]]
+
+            print(len(choices), [company_list[c] for c in choices], qunatities, [price[k[1]] * qunatities[k[0]] for k in enumerate(choices)],
+                  [price[k[1]] * next_change[k[1]] * qunatities[k[0]] for k in enumerate(choices)], np.sum([price[k[1]] * next_change[k[1]] * qunatities[k[0]] for k in enumerate(choices)]))
+            resource += sum
+            profits += [sum]
+
+        output["scenario"] = {"profits": profits, "total":np.sum(profits)}
+        # print(np.sum(profits), resource)
+        # profits = np.array(profits)
+        # import matplotlib.pyplot as plt
+        # plt.plot(profits)
+        #
+        # plt.show()
+        print(output["scenario"])
         self.save_eval_output(output)
+
+
+
+    def predict_next_state(self, initial_state, transision_matrix):
+
+        this_trans = transision_matrix
+        this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
+        trans_cumsum = np.cumsum(this_trans, axis=1)
+        randomvalue = np.random.random()
+        class_iter = 0
+
+
+        for pty in trans_cumsum[initial_state]:
+            if randomvalue < pty:
+                break
+
+            class_iter += 1
+
+        return class_iter
+
 
     def do_pred(self):
         #### Computes overall average accuracy, per stock accuracy
         # evaluation
         transision_matrix = self.load_model()
 
-        pred_data, dates = self.generate_pred_data()
+        pred_data, dates, prices = self.generate_pred_data(column="close")
 
         pred_classes = self.get_class(pred_data)
         # pred_pred = np.zeros(pred_classes.shape, dtype=np.int)
@@ -328,28 +387,36 @@ class markov1(FEModel):
 
         i = 0
         company_list = self.db.get_list_companies()
-        last_date = datetime.datetime.strptime(dates[1], "%Y-%m-%d")
+        last_date = datetime.datetime.strptime(dates[0], "%Y-%m-%d")
         predict_date = last_date + datetime.timedelta(days=1)
         for pred_element in pred_classes:
             comp = company_list[i]
             pred_pred[comp] = {"date": str(predict_date).split(" ")[0]}
-            initial_state = pred_element[0]
-            this_trans = transision_matrix[i]
-            this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
-            trans_cumsum = np.cumsum(this_trans, axis=1)
-            randomvalue = np.random.random()
-            class_iter = 0
-
-            for pty in trans_cumsum[initial_state]:
-                if randomvalue < pty:
-                    pred_pred[comp]["prediction"] = class_iter
-                    # pred_pred[i] = class_iter
-                    break
-                class_iter += 1
+            pred_pred[comp]["prediction"] = self.predict_next_state(pred_element[0], transision_matrix[i])
+            # initial_state = pred_element[0]
+            # this_trans = transision_matrix[i]
+            # this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
+            # trans_cumsum = np.cumsum(this_trans, axis=1)
+            # randomvalue = np.random.random()
+            # class_iter = 0
+            #
+            # for pty in trans_cumsum[initial_state]:
+            #     if randomvalue < pty:
+            #         pred_pred[comp]["prediction"] = class_iter
+            #         # pred_pred[i] = class_iter
+            #         break
+            #     class_iter += 1
             i += 1
 
 
-        print(pred_pred)
+        strategy_obj = Strategy()
+        resource = 5000
+        choices, qunatities = strategy_obj.linear_problem(pred_classes[:,0], prices.T[0], resource=resource)
+
+        print(predict_date, [company_list[k] for k in choices], qunatities)
+        pred_pred["scenario"] = {"stocks": [company_list[k] for k in choices], "qantities": qunatities}
+
+
         self.save_pred_output(pred_pred)
 
 
