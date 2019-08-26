@@ -143,7 +143,8 @@ class markov1(FEModel):
         company_list = self.db.get_list_companies()
         total_companies = self.db.get_companies_count()
 
-        max_items = self.db.get_max_rows() - 1
+        from_end = 1
+        max_items = self.db.get_max_rows() - from_end
 
         values = np.zeros((total_companies, max_items))
 
@@ -152,7 +153,7 @@ class markov1(FEModel):
             if i == 0:
                 _, dates_fetch = self.db.get_values_company(company_sym=k)
             values_fetch, _ = self.db.get_values_company(company_sym=k, columns=column)
-            values_fetch = values_fetch[:-1]
+            values_fetch = values_fetch[:-from_end]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
             i += 1
 
@@ -253,34 +254,38 @@ class markov1(FEModel):
         eval_data, dates, prices = self.generate_eval_data(column="close")
 
         eval_classes = self.get_class(eval_data)
-        eval_pred = np.zeros(eval_classes.shape, dtype=np.int)
 
 
-        i = 0
-        for eval_element in eval_data:
-            j = 0
-            for state in eval_classes[i]:
-                initial_state = state
-                if j == 0:
-                    eval_pred[i, j] = initial_state
+        def pred_all_stocks(eval_data, eval_classes):
+            eval_pred = np.zeros(eval_classes.shape, dtype=np.int)
+            i = 0
+            for eval_element in eval_data:
+                j = 0
+                for state in eval_classes[i]:
+                    initial_state = state
+                    if j == 0:
+                        eval_pred[i, j] = initial_state
 
-                this_trans = transision_matrix[i]
-                eval_pred[i, j] = self.predict_next_state(initial_state, this_trans)
+                    this_trans = transision_matrix[i]
+                    eval_pred[i, j] = self.predict_next_state(initial_state, this_trans)
 
-                # this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
-                #
-                # trans_cumsum = np.cumsum(this_trans, axis=1)
-                #
-                # randomvalue = np.random.random()
-                #
-                # class_iter = 0
-                # for pty in trans_cumsum[initial_state]:
-                #     if randomvalue < pty:
-                #         eval_pred[i, j] = class_iter
-                #         break;
-                #     class_iter += 1
-                j += 1
-            i += 1
+                    # this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
+                    #
+                    # trans_cumsum = np.cumsum(this_trans, axis=1)
+                    #
+                    # randomvalue = np.random.random()
+                    #
+                    # class_iter = 0
+                    # for pty in trans_cumsum[initial_state]:
+                    #     if randomvalue < pty:
+                    #         eval_pred[i, j] = class_iter
+                    #         break;
+                    #     class_iter += 1
+                    j += 1
+                i += 1
+            return eval_pred
+
+        eval_pred = pred_all_stocks(eval_data, eval_classes)
 
         output = dict()
         from sklearn.metrics import accuracy_score
@@ -313,7 +318,7 @@ class markov1(FEModel):
         y_true = eval_classes.flatten()
         y_pred = eval_pred.flatten()
 
-
+        print("Overall Accuracy:", accuracy_score(y_true, y_pred))
         output["overall"] = {"accuracy": accuracy_score(y_true, y_pred)}
 
         # print(output)
@@ -324,33 +329,68 @@ class markov1(FEModel):
         # self.save_eval_output(output)
 
         #Run Strategies
-        eval_pred_transpose = eval_pred.T
-        price_transpose = prices.T
-        strategy_obj = Strategy()
+        #simulate profits
+        def get_profits(eval_pred, prices, eval_data, confidence):
 
-        nextday_change = eval_data.T[1:]
-        profits = []
-        resource = 5000
-        for predicted, price, next_change in zip(eval_pred_transpose, price_transpose, nextday_change):
-            choices, qunatities = strategy_obj.linear_problem(predicted, price, confidence, resource=resource)
-            sum = 0
-            # print(next_change)
+            eval_pred_transpose = eval_pred.T
+            price_transpose = prices.T
+            strategy_obj = Strategy()
 
-            for k in enumerate(choices):
-                sum += price[k[1]]* next_change[k[1]] * qunatities[k[0]]
+            nextday_change = eval_data.T[1:]
+            profits = []
+            resource = 5000
+            # change_pred = [0.99937856, 0.014028758, 0.952588, 0.0011250675, 0.99925244, 0.99722207, 1.0, 0.9793011, 7.301569e-06, 0.0019656718, 6.854534e-07, 0.0030357838, 0.0003298521, 0.012945354, 0.042793423, 0.9238223, 3.85046e-05, 0.0019536614, 0.11864576, 0.44928148, 0.99813455, 0.55921096, 0.51644427, 0.30976623, 0.9776361, 0.7904098, 1.0, 0.30644393, 0]
+            # change_pred = np.array(change_pred)
+            # change_pred_bin = np.array(change_pred)
+            # change_pred_bin[change_pred > 0.5] = 1
+            # change_pred_bin[change_pred <=0.5] = 0
+            for predicted, price, next_change in zip(eval_pred_transpose, price_transpose, nextday_change):
+                choices, qunatities = strategy_obj.linear_problem(predicted, price, confidence, resource=resource)
+                # choices, qunatities = strategy_obj.random_selection1(predicted, price, confidence, resource=resource)
+                sum = 0
+                # print(next_change)
 
-            print(len(choices), [company_list[c] for c in choices], qunatities, [price[k[1]] * qunatities[k[0]] for k in enumerate(choices)],
-                  [price[k[1]] * next_change[k[1]] * qunatities[k[0]] for k in enumerate(choices)], np.sum([price[k[1]] * next_change[k[1]] * qunatities[k[0]] for k in enumerate(choices)]))
-            resource += sum
-            profits += [sum]
+                for k in enumerate(choices):
+                    try:
+                        sum += price[k[1]+1] * next_change[k[1] + 1] * qunatities[k[0]]
+                    except:
+                        sum += 0
 
-        output["scenario"] = {"profits": profits, "total":np.sum(profits)}
-        # print(np.sum(profits), resource)
+                # print(len(choices), [company_list[c] for c in choices], qunatities, [price[k[1]] * qunatities[k[0]] for k in enumerate(choices)],
+                #       [price[k[1]] * next_change[k[1]] * qunatities[k[0]] for k in enumerate(choices)], np.sum([price[k[1]] * next_change[k[1]] * qunatities[k[0]] for k in enumerate(choices)]))
+                resource += sum
+
+                profits += [sum]
+            # print(profits * change_pred_bin)
+            # # exit()
+            #
+
+            # profits = profits * change_pred_bin
+            return profits
+
+        profits_list = []
+
+        for k in range(100):
+            print("Evaluating scenario:", k)
+            eval_pred = pred_all_stocks(eval_data, eval_classes)
+            price1 = np.copy(prices)
+            profits_list += [get_profits(eval_pred, price1, eval_data, confidence)]
+
+        # print(profits_list)
+
+        avg_earnings = [np.sum(k) for k in profits_list]
+        # print(avg_earnings)
+        # print(np.mean(avg_earnings), np.std(avg_earnings))
+
+        # output["scenario"] = {"profits": profits, "total":np.sum(profits)}
+        # # print(np.sum(profits), resource)
         # profits = np.array(profits)
+
         # import matplotlib.pyplot as plt
         # plt.plot(profits)
         #
         # plt.show()
+        output["scenario"] = {"mean": np.mean(avg_earnings), "std": np.std(avg_earnings)}
         print(output["scenario"])
         self.save_eval_output(output)
 
@@ -380,6 +420,7 @@ class markov1(FEModel):
         transision_matrix = self.load_model()
 
         pred_data, dates, prices = self.generate_pred_data(column="close")
+        _, _, prices = self.generate_pred_data(column="open")
 
         pred_classes = self.get_class(pred_data)
         # pred_pred = np.zeros(pred_classes.shape, dtype=np.int)
@@ -413,7 +454,7 @@ class markov1(FEModel):
         resource = 5000
         choices, qunatities = strategy_obj.linear_problem(pred_classes[:,0], prices.T[0], resource=resource)
 
-        print(predict_date, [company_list[k] for k in choices], qunatities)
+        print(predict_date, [company_list[k] for k in choices], qunatities, [pred_classes[k] for k in choices])
         pred_pred["scenario"] = {"stocks": [company_list[k] for k in choices], "qantities": qunatities}
 
 
