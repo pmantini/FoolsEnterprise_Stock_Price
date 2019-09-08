@@ -21,6 +21,7 @@ class Strategy:
         # c = prices * delta_p * 100
         # c = prices * delta_p
         c = prices * delta_p
+
         # c = [np.ones(len(prices))] * delta_p
         c = (c - np.min(c))/(np.max(c) - np.min(c))
         c = -c

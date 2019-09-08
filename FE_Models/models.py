@@ -391,6 +391,7 @@ class markov1(FEModel):
         #
         # plt.show()
         output["scenario"] = {"mean": np.mean(avg_earnings), "std": np.std(avg_earnings)}
+        output["view"] = {"mean": np.mean(avg_earnings), "std": np.std(avg_earnings), "Descritption": "1000 simulation over 30 days with $5000"}
         print(output["scenario"])
         self.save_eval_output(output)
 
@@ -456,7 +457,7 @@ class markov1(FEModel):
 
         print(predict_date, [company_list[k] for k in choices], qunatities, [pred_classes[k] for k in choices])
         pred_pred["scenario"] = {"stocks": [company_list[k] for k in choices], "qantities": qunatities}
-
+        pred_pred["view"] = {"stocks": [company_list[k] for k in choices], "qantities": qunatities}
 
         self.save_pred_output(pred_pred)
 
