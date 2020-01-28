@@ -21,9 +21,9 @@ Quandl==3.4.6
 requests==2.21.0
 six==1.12.0
 urllib3==1.24.1
-tensorflow-gpu>=1.8,<=1.9
-Keras>=2.0.4,<3.0
-h5py>=2.7.0,<3.0
+#tensorflow-gpu>=1.8,<=1.9
+#Keras>=2.0.4,<3.0
+#h5py>=2.7.0,<3.0
 pandas>=0.18.0,<1.0
 numexpr>=2.4.6,<3.0
 setuptools<=39.1.0
