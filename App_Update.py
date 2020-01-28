@@ -84,9 +84,24 @@ class app_update:
                 if not len(last_date):
                     print(last_date)
                     print("No data availabel for %s", stock_sym)
-                    data = fe_quandl.get(stock_sym)
+                    try:
+                        data = fe_quandl.get(stock_sym)
+                    except:
+                        print("%s Not found; deleteing from list", stock_sym)
+                        fe_stock_list = FE_Stock_List()
+                        fe_stock_list.init(table_name)
+                        fe_stock_list.delete_stock(stock_sym)
+                        fe_stock_list.close()
                 else:
-                    data = fe_quandl.filter(stock_sym, last_date)
+                    try:
+                        data = fe_quandl.filter(stock_sym, last_date)
+                    except:
+
+                        print("%s Not found; deleteing from list", stock_sym)
+                        fe_stock_list = FE_Stock_List()
+                        fe_stock_list.init(table_name)
+                        fe_stock_list.delete_stock(stock_sym)
+                        fe_stock_list.close()
 
                 for ind in data.index:
                     stock_row = {"date": str(ind).split(" ")[0]}
