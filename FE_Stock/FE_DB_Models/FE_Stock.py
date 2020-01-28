@@ -82,6 +82,9 @@ class FE_Stock:
         else:
             return last_item[0]
 
+
+
+
     def close(self):
         self.db.commit()
         self.db.close()
