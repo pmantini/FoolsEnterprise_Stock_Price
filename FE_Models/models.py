@@ -898,20 +898,24 @@ class markov_o2_c2_w(FEModel):
 
 
 
-    def generate_train_data(self, column = "volume"):
+    def generate_train_data(self, column = "volume", stats = "max"):
         company_list = self.db.get_list_companies()
         total_companies = self.db.get_companies_count()
 
-        max_items = self.db.get_max_rows()
-
+        # max_items = self.db.get_max_rows()
+        max_items = 0
+        for k in company_list:
+            _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+            if max_items < len(dates_fetch):
+                max_items = len(dates_fetch)
 
         i = 0
         for k in company_list:
             if i == 0:
-                _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k)
-                max_items = len(dates_fetch)
+                _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+                #max_items = len(dates_fetch)
                 values = np.zeros((total_companies, max_items))
-            values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column)
+            values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
 
             values[i, max_items - len(values_fetch):max_items] = values_fetch
             i += 1
@@ -1079,7 +1083,7 @@ class markov_o2_c2_w(FEModel):
 
         _, _, prices_c = self.generate_eval_data(column="close", stats="last")
 
-        eval_data = eval_data[:,2:]
+        eval_data = eval_data[:,1:]
 
         eval_classes = self.get_class(eval_data)
 
