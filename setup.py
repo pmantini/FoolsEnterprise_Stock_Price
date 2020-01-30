@@ -1,3 +1,5 @@
+mount_folder = "mount/"
+
 secrets_folder = "mount/secrets/"
 quandl_api_key_file = secrets_folder+"api_key/.quandl_apikey"
 

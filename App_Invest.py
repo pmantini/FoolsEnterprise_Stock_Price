@@ -39,7 +39,14 @@ if __name__ == '__main__':
         '--account',
         type=str,
         help='Name of the Account',
+        default='Alpaca')
+    parser.add_argument(
+        '-t',
+        '--task',
+        type=str,
+        help='task [run, save]',
         default='alpaca')
+
 
     parser.add_argument(
         '-a',
@@ -90,7 +97,10 @@ if __name__ == '__main__':
             logging.warning("%s is a not a valid optional arguement", argument)
 
     portfolio_obj.do_init(args.arg)
-    portfolio_obj.do_run()
+    if args.task == "run":
+        portfolio_obj.do_run()
+    elif args.task == "save":
+        portfolio_obj.do_save_status()
 
 # if __name__ == "__main__":
 #     from argparse import ArgumentParser

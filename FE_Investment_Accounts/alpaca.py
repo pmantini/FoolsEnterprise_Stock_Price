@@ -18,6 +18,10 @@ class FE_Alpaca:
         self.alpaca = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
         self.account = self.alpaca.get_account()
 
+    def get_account_details(self):
+        return self.account.__dict__['_raw']
+
+
     def get_buying_power(self):
         return self.account.buying_power
 

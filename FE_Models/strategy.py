@@ -4,7 +4,7 @@ import os, logging, pickle
 from FE_Models.model_DB_Reader import DB_Ops
 from FE_Models.optimize import Optimize
 import json
-
+from setup import mount_folder
 logging = logging.getLogger("main")
 
 class FEStrategy:
@@ -339,7 +339,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
     def __init__(self, args):
         self.name = self.__class__.__name__
         self.req_args = ['model']
-        self.opt_args = ['output_dir', "resource", "number_of_stocks"]
+        self.opt_args = ['output_dir', "resource", "number_of_stocks", "investment_account"]
         FEStrategy.__init__(self, self.name, self.req_args, self.opt_args)
 
         self.company_list = None
@@ -369,7 +369,20 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         self.pred_strategy_dir = args[
             "pred_dir"] if "pred_dir" in args.keys() else self.output_dir + "pred_dir/" + self.name + "/"
 
-        self.resource = float(args["resource"]) if "resource" in args.keys() else 5000
+        self.investment_account = args[
+            "investment_account"] if "investment_account" in args.keys() else "Alpaca"
+        self.input_dir = mount_folder
+        self.portfolio_dir = os.path.join(mount_folder, "portfolio")
+        self.this_portfolio = os.path.join(self.portfolio_dir, self.investment_account)
+        self.account_file = os.path.join(self.this_portfolio, "account.json")
+
+        self.account = None
+
+        if os.path.isfile(self.account_file):
+
+            self.account = self.load_model(self.account_file)
+
+        self.resource = float(args["resource"]) if "resource" in args.keys() else float(self.account["buying_power"])
         self.number_of_stocks = int(args["number_of_stocks"]) if "number_of_stocks" in args.keys() else 5
 
 
