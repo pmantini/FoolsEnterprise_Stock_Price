@@ -904,21 +904,27 @@ class markov_o2_c2_w(FEModel):
 
         # max_items = self.db.get_max_rows()
         max_items = 0
+        values_array, dates_array = [], []
         for k in company_list:
-            _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
-            if max_items < len(dates_fetch):
-                max_items = len(dates_fetch)
+            v_temp, d_temp = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_array += [v_temp]
+            dates_array += [d_temp]
 
-        i = 0
-        for k in company_list:
+            # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+        for k in dates_array:
+            if max_items < len(k):
+                max_items = len(k)
+
+        # i = 0
+        for i in range(len(company_list)):
             if i == 0:
-                _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+                # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
                 #max_items = len(dates_fetch)
                 values = np.zeros((total_companies, max_items))
-            values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
-
+            # values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_fetch = values_array[i]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
-            i += 1
+            # i += 1
 
 
         total_samples_avail  = max_items
@@ -941,30 +947,55 @@ class markov_o2_c2_w(FEModel):
         weeks_to_eval = self.days_to_eval//7
 
         max_items = 0
+        values_array, dates_array = [], []
         for k in company_list:
-            _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
-            if max_items < len(dates_fetch) - 1:
-                max_items = len(dates_fetch) - 1
+            v_temp, d_temp = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_array += [v_temp]
+            dates_array += [d_temp]
 
+            # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+        for k in dates_array:
+            if max_items < len(k):
+                max_items = len(k)
 
-        i = 0
-        for k in company_list:
-
+        # i = 0
+        for i in range(len(company_list)):
             if i == 0:
-                _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
-                # max_items = len(dates_fetch) - 1
-
+                # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+                # max_items = len(dates_fetch)
                 values = np.zeros((total_companies, max_items))
-
-            values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
-            values_fetch = values_fetch[:-from_end]
-
-
+            # values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_fetch = values_array[i][:-from_end]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
-            i += 1
 
 
-        dates = dates_fetch[-weeks_to_eval-2:]
+
+        # max_items = 0
+        # for k in company_list:
+        #     _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+        #     if max_items < len(dates_fetch) - 1:
+        #         max_items = len(dates_fetch) - 1
+        #
+        #
+        # i = 0
+        # for k in company_list:
+        #
+        #     if i == 0:
+        #         _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+        #         # max_items = len(dates_fetch) - 1
+        #
+        #         values = np.zeros((total_companies, max_items))
+        #
+        #     values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+        #     values_fetch = values_fetch[:-from_end]
+        #
+        #
+        #     values[i, max_items - len(values_fetch):max_items] = values_fetch
+        #     i += 1
+
+
+        dates = dates_array[0][-weeks_to_eval-2:]
+        # dates = dates_fetch[-weeks_to_eval - 2:]
 
         eval_samples = values[:, -weeks_to_eval-2:]
         prices = eval_samples[:, 1:]
@@ -981,26 +1012,48 @@ class markov_o2_c2_w(FEModel):
         company_list = self.db.get_list_companies()
         total_companies = self.db.get_companies_count()
 
+        # max_items = 0
+        # for k in company_list:
+        #     _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k)
+        #     if max_items < len(dates_fetch) - 1:
+        #         max_items = len(dates_fetch) - 1
+        #
+        # i = 0
+        # for k in company_list:
+        #     if i == 0:
+        #         _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k)
+        #         # max_items = len(dates_fetch) - 1
+        #
+        #         values = np.zeros((total_companies, max_items))
+        #
+        #     values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column)
+        #     values_fetch = values_fetch[:-1]
+        #     values[i, max_items - len(values_fetch):max_items] = values_fetch
+        #     i += 1
+
         max_items = 0
+        values_array, dates_array = [], []
         for k in company_list:
-            _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k)
-            if max_items < len(dates_fetch) - 1:
-                max_items = len(dates_fetch) - 1
+            v_temp, d_temp = self.db.get_weekly_stats_company(company_sym=k, columns=column)
+            values_array += [v_temp]
+            dates_array += [d_temp]
 
-        i = 0
-        for k in company_list:
+            # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+        for k in dates_array:
+            if max_items < len(k):
+                max_items = len(k)
+
+        # i = 0
+        for i in range(len(company_list)):
             if i == 0:
-                _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k)
-                # max_items = len(dates_fetch) - 1
-
+                # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+                # max_items = len(dates_fetch)
                 values = np.zeros((total_companies, max_items))
-
-            values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column)
-            values_fetch = values_fetch[:-1]
+            # values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_fetch = values_array[i][:-1]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
-            i += 1
 
-        dates = dates_fetch[-2:]
+        dates = dates_array[0][-2:]
         prices = values[:, -2:]
 
         pred_samples = values[:, -3:]
@@ -1075,9 +1128,13 @@ class markov_o2_c2_w(FEModel):
     def do_eval(self):
         #### Computes overall average accuracy, per stock accuracy
         # evaluation
+
+
+
         transision_matrix = self.load_model()
 
         eval_data, dates, prices_close = self.generate_eval_data(column="high")
+
         _, _, prices_low = self.generate_eval_data(column="low", stats="min")
         _, _, prices_high = self.generate_eval_data(column="high")
 
@@ -1226,11 +1283,18 @@ class markov_o2_c2_w(FEModel):
         #### Computes overall average accuracy, per stock accuracy
         # evaluation
         transision_matrix = self.load_model()
-
+        print(transision_matrix.shape)
+        import time
+        start = time.time()
         pred_data, dates, prices = self.generate_pred_data(column="high")
-        _, dates, prices = self.generate_pred_data(column="close")
 
+        print(pred_data.shape)
         pred_classes = self.get_class(pred_data)
+        print(pred_classes.shape)
+        # _, dates, prices = self.generate_pred_data(column="close")
+        end = time.time()
+        print(end - start)
+
 
 
         # pred_pred = np.zeros(pred_classes.shape, dtype=np.int)
@@ -1243,7 +1307,9 @@ class markov_o2_c2_w(FEModel):
             last_date = datetime.datetime.strptime(dates[1], "%Y-%m-%d")
 
             predict_date = last_date + datetime.timedelta(days=7*(t+1))
+
             for pred_element in pred_classes:
+
                 comp = company_list[i]
                 if comp not in pred_pred.keys():
                     pred_pred[comp] = {"date": [str(predict_date).split(" ")[0]]}
