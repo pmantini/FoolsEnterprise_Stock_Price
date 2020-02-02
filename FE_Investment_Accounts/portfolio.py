@@ -98,7 +98,7 @@ class Alpaca(FEPortfolio):
         logging.info("Writing evaluation output to %s", self.account_file)
 
         with open(self.account_file, 'wb') as outfile:
-            pickle.dump(data, outfile)
+            pickle.dump(data, outfile, protocol=2)
 
         outfile.close()
 
