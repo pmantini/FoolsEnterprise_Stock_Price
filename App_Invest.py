@@ -96,8 +96,9 @@ if __name__ == '__main__':
         if argument not in model_arg_available["required"] and argument not in model_arg_available["optional"]:
             logging.warning("%s is a not a valid optional arguement", argument)
 
-    portfolio_obj.do_init(args.arg)
+
     if args.task == "run":
+        portfolio_obj.do_init(args.arg)
         portfolio_obj.do_run()
     elif args.task == "save":
         portfolio_obj.do_save_status()

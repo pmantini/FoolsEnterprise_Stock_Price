@@ -68,10 +68,10 @@ class Alpaca(FEPortfolio):
 
     def do_init(self, args):
 
-        self.input_dir = mount_folder
-        self.portfolio_dir = os.path.join(mount_folder, "portfolio")
-        self.this_portfolio = os.path.join(self.portfolio_dir, self.name)
-        self.account_file = os.path.join(self.this_portfolio, "account.json")
+        # self.input_dir = mount_folder
+        # self.portfolio_dir = os.path.join(mount_folder, "portfolio")
+        # self.this_portfolio = os.path.join(self.portfolio_dir, self.name)
+        # self.account_file = os.path.join(self.this_portfolio, "account.json")
 
         self.strategy_input_dir = args["strategy_input_dir"] if "strategy_input_dir" in args.keys() else "Output/Strategy"
         self.pred_dir = args["pred_dir"] if "pred_dir" in args.keys() else "pred_dir"
@@ -81,6 +81,11 @@ class Alpaca(FEPortfolio):
 
 
     def do_save_status(self):
+        self.input_dir = mount_folder
+        self.portfolio_dir = os.path.join(mount_folder, "portfolio")
+        self.this_portfolio = os.path.join(self.portfolio_dir, self.name)
+        self.account_file = os.path.join(self.this_portfolio, "account.json")
+
         data = self.investment_ac.get_account_details()
 
         try:
