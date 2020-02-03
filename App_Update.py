@@ -119,7 +119,7 @@ class app_update:
                 fe_stock.close()
             else:
                 print("%s is already Up to date, last date: %s" % (stock_sym, last_date))
-                if self.c:
+                if self.re_update:
                     print("re_update flag set to True")
                     data = fe_quandl.filter(stock_sym, last_date)
 
