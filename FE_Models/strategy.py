@@ -715,7 +715,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         logging.info("Writing strategy output to %s", self.strategy_pred_file)
 
         with open(self.strategy_pred_file, 'wb') as outfile:
-            pickle.dump(data, outfile)
+            pickle.dump(data, outfile, protocol=2)
 
         outfile.close()
 

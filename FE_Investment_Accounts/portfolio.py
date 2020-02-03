@@ -201,7 +201,7 @@ class Alpaca(FEPortfolio):
         if str(file).endswith(".json"):
 
             with open(file, 'rb') as f:
-                return pickle.load(f)
+                return pickle.load(f, encoding='latin1')
 
         elif str(file).endswith(".npy"):
             return np.load(file)
