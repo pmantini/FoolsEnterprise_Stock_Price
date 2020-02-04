@@ -283,7 +283,7 @@ class RandomSelectionForTwoTimeStepPrediciton(FEStrategy):
                 tempdrop = np.random.normal(self.gaussian_parameters_delta[i]["decrease"][0],
                                             self.gaussian_parameters_delta[i]["decrease"][1])
                 # tempdrop = self.gaussian_parameters_delta[i]["decrease"][0]
-                if tempdrop < 0 and tempdrop >= self.gaussian_parameters_delta[i]["decrease"][0]:
+                if tempdrop < 0 and tempdrop >= self.gaussian_parameters_delta[i]["decrease"][0]/2:
                     break;
 
             while True:
