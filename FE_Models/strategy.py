@@ -283,7 +283,7 @@ class RandomSelectionForTwoTimeStepPrediciton(FEStrategy):
                 tempdrop = np.random.normal(self.gaussian_parameters_delta[i]["decrease"][0],
                                             self.gaussian_parameters_delta[i]["decrease"][1])
                 # tempdrop = self.gaussian_parameters_delta[i]["decrease"][0]
-                if tempdrop < 0 and tempdrop >= self.gaussian_parameters_delta[i]["decrease"][0]/2:
+                if tempdrop < 0 and tempdrop >= self.gaussian_parameters_delta[i]["decrease"][0]:
                     break;
 
             while True:
@@ -641,7 +641,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
                     tempdrop = 0
                     break
                 #tempdrop = self.gaussian_parameters_delta[i]["decrease"][0]
-                if tempdrop < 0 and tempdrop <= self.gaussian_parameters_delta[i]["decrease"][0]:
+                if tempdrop < 0 and tempdrop >= self.gaussian_parameters_delta[i]["decrease"][0]:
                     break;
 
             while True:
@@ -662,7 +662,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
 
             if self.company_list[i] in list_possible:
-                predictions[i] = -(1+drop[i])*(1+pop[i])
+                predictions[i] = (1+drop[i]) - (1+drop[i])*(1+pop[i])
             else:
                 predictions[i] = 0
 

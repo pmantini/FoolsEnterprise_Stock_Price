@@ -177,12 +177,14 @@ class Alpaca(FEPortfolio):
                 self.desired_state[k[0]] = self.stock_position["s"]
 
             if k[1] in list_of_orders.keys():
+                print(list_of_orders[k[1]].side)
                 if list_of_orders[k[1]].side == "buy":
                     exp_date_str =  list_of_orders[k[1]].client_order_id.split("___")[1]
                     exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
                     print(self.assets[k[0]], exp_date)
 
                     if datetime.today() > exp_date:
+
                         print("for cancelling")
                         self.desired_state[k[0]] = self.stock_position["n"]
                 elif list_of_orders[k[1]].side == "sell":
@@ -195,7 +197,7 @@ class Alpaca(FEPortfolio):
                     # if datetime.today() >= exp_date-timedelta(days=2):
                     #     print("for cancelling")
                     #     self.desired_state[k[0]] = self.stock_position["e"]
-
+        
 
     def load_model(self, file):
         if str(file).endswith(".json"):
