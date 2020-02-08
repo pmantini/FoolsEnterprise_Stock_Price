@@ -65,6 +65,8 @@ class Alpaca(FEPortfolio):
         self.model_input_dir = None
         self.list_of_orders = {}
 
+        self.sell_info_file = None
+
 
     def do_init(self, args):
 
@@ -78,6 +80,18 @@ class Alpaca(FEPortfolio):
         self.pred_file = args["pred_file"] if "pred_file" in args.keys() else "pred.json"
 
         self.strategy_file = os.path.join(os.path.join(self.strategy_input_dir, self.pred_dir), os.path.join(self.strategy,self.pred_file))
+
+        self.portfolio_output_dir = args["portfolio_output_dir"] if "portfolio_output_dir" in args.keys() else "Output/Portfolio"
+        self.sell_info_file = args["sell_info_file"] if "sell_info_file" in args.keys() else "sell_info_file.json"
+        self.sell_info_file = os.path.join(os.path.join(self.portfolio_output_dir, self.name), self.sell_info_file)
+
+        try:
+            self.sell_info = self.load_model(self.sell_info_file)
+        except:
+            print("Failed to load")
+            self.sell_info = {}
+
+
 
 
     def do_save_status(self):
@@ -171,9 +185,17 @@ class Alpaca(FEPortfolio):
 
             if k[1] in self.strategy_actions.keys():
                 self.desired_state[k[0]] = self.stock_position["b"]
+                print(self.strategy_actions[k[1]])
+                if k[1] not in self.sell_info.keys():
+                    self.sell_info[k[1]] = {}
+
+                self.sell_info[k[1]]["sell_ratio"] = self.strategy_actions[k[1]]["sell_ratio"]
+                self.sell_info[k[1]]["sell_exp"] = self.strategy_actions[k[1]]["sell_exp"]
+
 
 
             if k[1] in list_of_positions.keys():
+                print(k)
                 self.desired_state[k[0]] = self.stock_position["s"]
 
             if k[1] in list_of_orders.keys():
@@ -197,7 +219,23 @@ class Alpaca(FEPortfolio):
                     # if datetime.today() >= exp_date-timedelta(days=2):
                     #     print("for cancelling")
                     #     self.desired_state[k[0]] = self.stock_position["e"]
-        
+
+    def save_sell_info(self):
+
+        try:
+            print(self.sell_info_file.rsplit("/",1)[0])
+            os.makedirs(self.sell_info_file.rsplit("/",1)[0])
+        except OSError:
+            logging.warning("Creation of the directory %s failed" % self.sell_info_file)
+        else:
+            logging.info("Successfully created the directory %s " % self.sell_info_file)
+
+        logging.info("Writing strategy output to %s", self.sell_info_file)
+
+        with open(self.sell_info_file, 'wb') as outfile:
+            pickle.dump(self.sell_info, outfile, protocol=2)
+
+        outfile.close()
 
     def load_model(self, file):
         if str(file).endswith(".json"):
@@ -214,6 +252,7 @@ class Alpaca(FEPortfolio):
         self.generate_current_state()
         self.generate_desired_state()
 
+
         for k  in enumerate(self.current_state):
 
             if self.current_state[k[0]] != self.desired_state[k[0]]:
@@ -228,7 +267,7 @@ class Alpaca(FEPortfolio):
                         # buy_order_name = this_asset + "___" + (datetime.today() - timedelta(days=2)).strftime(
                         #     '%Y-%m-%d')
                         order_resp = self.investment_ac.order(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
-                                                              "buy", self.strategy_actions[this_asset]["buy"][0] - 1, buy_order_name)
+                                                              "buy", self.strategy_actions[this_asset]["buy"][0], buy_order_name)
 
                         print(order_resp)
                     except:
@@ -241,8 +280,8 @@ class Alpaca(FEPortfolio):
                     try:
 
                         avg_buy_price = self.investment_ac.get_position(this_asset).avg_entry_price
-                        new_sell_price = float(avg_buy_price) * float(self.strategy_actions[this_asset]["sell_ratio"])
-                        sell_order_name = this_asset + "___" + self.strategy_actions[this_asset]["sell_exp"]
+                        new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
+                        sell_order_name = this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
                         # sell_order_name = this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
                         #     '%Y-%m-%d')
                         available_qty = self.investment_ac.get_position(this_asset).qty
@@ -268,3 +307,4 @@ class Alpaca(FEPortfolio):
                         self.investment_ac.liquidate_position(this_asset)
 
 
+        self.save_sell_info()

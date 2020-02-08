@@ -37,7 +37,7 @@ class Optimize:
 
         return choices, qunatities
 
-    def random_selection(self, predictions, prices, confidence=None, resource=5000, number_of_stocks=6):
+    def random_selection(self, predictions, prices, confidence=None, resource=5000, number_of_stocks=6, min_price = 10):
         """ Multiply class values with probabilities, and then minimize risk by spreading out investments"""
 
         def get_resources(investments=[1500, 1000, 500, 250, 175, 75]):
@@ -68,7 +68,8 @@ class Optimize:
         current_resource = next(resource_gen)
         for best in best_ops:
             random_value = np.random.random()
-
+            if prices[best] < min_price:
+                continue
 
             if prices[best] < current_resource:
                 choices += [best]
