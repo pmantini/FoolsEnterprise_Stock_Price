@@ -210,11 +210,15 @@ class Alpaca(FEPortfolio):
                         print("for cancelling")
                         self.desired_state[k[0]] = self.stock_position["n"]
                 elif list_of_orders[k[1]].side == "sell":
-                    exp_date_str = list_of_orders[k[1]].client_order_id.split("___")[1]
-                    exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
-                    print(self.assets[k[0]], exp_date)
-                    if datetime.today() >= exp_date-timedelta(days=1):
-                        print("Predicted sell price expiring, Liquidating")
+                    try:
+                        exp_date_str = list_of_orders[k[1]].client_order_id.split("___")[1]
+                        exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
+                        print(self.assets[k[0]], exp_date)
+                        if datetime.today() >= exp_date-timedelta(days=1):
+                            print("Predicted sell price expiring, Liquidating")
+                            self.desired_state[k[0]] = self.stock_position["l"]
+                    except:
+                        print("Unable to retirve sell expiry, liqidating")
                         self.desired_state[k[0]] = self.stock_position["l"]
                     # if datetime.today() >= exp_date-timedelta(days=2):
                     #     print("for cancelling")
