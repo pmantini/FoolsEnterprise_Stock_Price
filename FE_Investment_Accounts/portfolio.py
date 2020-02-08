@@ -284,8 +284,16 @@ class Alpaca(FEPortfolio):
                     try:
 
                         avg_buy_price = self.investment_ac.get_position(this_asset).avg_entry_price
-                        new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
-                        sell_order_name = this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
+                        if this_asset in self.sell_info.keys():
+                            new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
+                            sell_order_name = this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
+                        else:
+                            new_sell_price = float(avg_buy_price) * 1.01
+                            sell_order_name = this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
+                                '%Y-%m-%d')
+
+                        # new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
+                        # sell_order_name = this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
                         # sell_order_name = this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
                         #     '%Y-%m-%d')
                         available_qty = self.investment_ac.get_position(this_asset).qty

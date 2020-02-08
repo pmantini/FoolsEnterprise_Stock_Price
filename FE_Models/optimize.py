@@ -68,8 +68,8 @@ class Optimize:
         current_resource = next(resource_gen)
         for best in best_ops:
             random_value = np.random.random()
-            if prices[best] < min_price:
-                continue
+            # if prices[best] < min_price:
+            #     continue
 
             if prices[best] < current_resource:
                 choices += [best]
