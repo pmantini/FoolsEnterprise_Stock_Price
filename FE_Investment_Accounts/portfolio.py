@@ -31,7 +31,7 @@ class Alpaca(FEPortfolio):
 
     def __init__(self, args):
         self.name = self.__class__.__name__
-        self.req_args = ['strategy', 'live']
+        self.req_args = ['strategy', 'live', 'liquidateifcannotsell']
         self.opt_args = ['output_dir']
         FEPortfolio.__init__(self, self.name, self.req_args, self.opt_args)
 
@@ -39,7 +39,9 @@ class Alpaca(FEPortfolio):
         self.desired_state = None
         self.actions = None
 
+
         self.live = int(args.arg["live"])
+        self.liquidateifcannotsell = int(args.arg["liquidateifcannotsell"])
         self.strategy = args.arg["strategy"]
 
         self.strategy_actions = None
@@ -84,6 +86,8 @@ class Alpaca(FEPortfolio):
         self.portfolio_output_dir = args["portfolio_output_dir"] if "portfolio_output_dir" in args.keys() else "Output/Portfolio"
         self.sell_info_file = args["sell_info_file"] if "sell_info_file" in args.keys() else "sell_info_file.json"
         self.sell_info_file = os.path.join(os.path.join(self.portfolio_output_dir, self.name), self.sell_info_file)
+
+        self.avoid_exchange = ["ARCA"]
 
         try:
             self.sell_info = self.load_model(self.sell_info_file)
@@ -205,6 +209,8 @@ class Alpaca(FEPortfolio):
                     exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
                     print(self.assets[k[0]], exp_date)
 
+
+
                     if datetime.today() > exp_date:
 
                         print("for cancelling")
@@ -214,12 +220,15 @@ class Alpaca(FEPortfolio):
                         exp_date_str = list_of_orders[k[1]].client_order_id.split("___")[1]
                         exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
                         print(self.assets[k[0]], exp_date)
-                        if datetime.today() >= exp_date-timedelta(days=1):
-                            print("Predicted sell price expiring, Liquidating")
-                            self.desired_state[k[0]] = self.stock_position["l"]
+                        if self.liquidateifcannotsell:
+
+                            if datetime.today() >= exp_date-timedelta(days=1):
+                                print("Predicted sell price expiring, Liquidating")
+                                self.desired_state[k[0]] = self.stock_position["l"]
                     except:
-                        print("Unable to retirve sell expiry, liqidating")
-                        self.desired_state[k[0]] = self.stock_position["l"]
+                        if self.liquidateifcannotsell:
+                            print("Unable to retirve sell expiry, liqidating")
+                            self.desired_state[k[0]] = self.stock_position["l"]
                     # if datetime.today() >= exp_date-timedelta(days=2):
                     #     print("for cancelling")
                     #     self.desired_state[k[0]] = self.stock_position["e"]
@@ -256,7 +265,6 @@ class Alpaca(FEPortfolio):
         self.generate_current_state()
         self.generate_desired_state()
 
-
         for k  in enumerate(self.current_state):
 
             if self.current_state[k[0]] != self.desired_state[k[0]]:
@@ -264,10 +272,13 @@ class Alpaca(FEPortfolio):
 
                 this_asset = self.assets[k[0]]
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
-
+                    #to avoid investing in ARCA
+                    if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
+                        print("Skipping %s, because it belongs to exchnage %s" % (this_asset, self.investment_ac.get_asset(this_asset).exchange))
+                    continue
 
                     try:
-                        buy_order_name = this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
+                        buy_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
                         # buy_order_name = this_asset + "___" + (datetime.today() - timedelta(days=2)).strftime(
                         #     '%Y-%m-%d')
                         order_resp = self.investment_ac.order(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
@@ -286,10 +297,10 @@ class Alpaca(FEPortfolio):
                         avg_buy_price = self.investment_ac.get_position(this_asset).avg_entry_price
                         if this_asset in self.sell_info.keys():
                             new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
-                            sell_order_name = this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
+                            sell_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
                         else:
                             new_sell_price = float(avg_buy_price) * 1.01
-                            sell_order_name = this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
+                            sell_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
                                 '%Y-%m-%d')
 
                         # new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])

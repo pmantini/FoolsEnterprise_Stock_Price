@@ -80,7 +80,7 @@ if __name__ == '__main__':
     for arg in model_arg_available["required"]:
 
         if arg not in args.arg.keys():
-            print("failed required")
+            print("failed required", arg)
             logging.error("%s is a required arguement", arg)
             required_args_check_pass = False
 

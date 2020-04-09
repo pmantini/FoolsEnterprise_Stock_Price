@@ -357,6 +357,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
 
     def do_init(self, args):
+
         self.output_dir = args["output_dir"] if "output_dir" in args.keys() else "Output/Strategy/"
         self.model_input_dir = args["model_input_dir"] if "model_input_dir" in args.keys() else "Output/"
         self.model = args["model"]
@@ -382,7 +383,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
             self.account = self.load_model(self.account_file)
 
-        self.resource = float(args["resource"]) if "resource" in args.keys() else float(self.account["buying_power"])
+        self.resource = float(args["resource"]) if "resource" in args.keys() else float(self.account["cash"])
         self.number_of_stocks = int(args["number_of_stocks"]) if "number_of_stocks" in args.keys() else 5
 
 
@@ -434,7 +435,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
     def load_model(self, file):
         if str(file).endswith(".json"):
-
+            print(file)
             with open(file, 'rb') as f:
                 return pickle.load(f)
 
