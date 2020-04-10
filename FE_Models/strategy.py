@@ -386,7 +386,6 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         self.resource = float(args["resource"]) if "resource" in args.keys() else float(self.account["cash"])
         self.number_of_stocks = int(args["number_of_stocks"]) if "number_of_stocks" in args.keys() else 5
 
-
         self.eval_file = os.path.join(os.path.dirname(self.eval_dir), "eval.json")
         self.pred_file = os.path.join(os.path.dirname(self.pred_dir), "pred.json")
 
