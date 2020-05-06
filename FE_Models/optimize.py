@@ -58,7 +58,10 @@ class Optimize:
         # stock_prefs = delta_p
         # stock_prefs = (stock_prefs - np.min(stock_prefs)) / (np.max(stock_prefs) - np.min(stock_prefs))
 
-        best_ops = np.argsort(predictions)
+        # best_ops = np.argsort(predictions)
+        best_ops = np.nonzero(predictions)[0]
+        np.random.shuffle(best_ops)
+
         # best_ops = [k for k in range(len(predictions))]
         # print(best_ops)
 
@@ -67,7 +70,7 @@ class Optimize:
         resource_gen = get_resources()
         current_resource = next(resource_gen)
         for best in best_ops:
-            random_value = np.random.random()
+            # random_value = np.random.random()
             if prices[best] < min_price:
                 continue
 
