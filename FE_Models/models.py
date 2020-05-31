@@ -1,4 +1,4 @@
-from keras.layers import Dense, Flatten, Dropout, BatchNormalization, LSTM
+from keras.layers import Dense, Flatten, Dropout, BatchNormalization, LSTM, Bidirectional, Activation
 from keras.layers.convolutional import Conv2D, MaxPooling2D, UpSampling2D
 from keras import optimizers
 from keras.layers.advanced_activations import LeakyReLU
@@ -12,12 +12,16 @@ from setup import log_file
 import pickle
 import datetime
 
+from keras.layers import TimeDistributed
+from keras.layers.convolutional import Conv1D
+from keras.layers.convolutional import MaxPooling1D
+
 import numpy as np
 
 import logging
 import os
 import shutil
-
+from itertools import dropwhile
 
 
 logging = logging.getLogger("main")
@@ -825,6 +829,338 @@ class markov_o2_c2(FEModel):
         outfile.close()
 
 
+class lstm_w(FEModel):
+
+    def __init__(self, args):
+        self.name = self.__class__.__name__
+        self.req_args = []
+        self.opt_args = ['ouput_dir', "days_to_eval", "model_dir", 'pred_dir', 'n_steps', 'n_features']
+        FEModel.__init__(self, self.name, self.req_args, self.opt_args)
+
+        self.company_list = None
+        self.black_list = None
+        self.db_folder = None
+        self.output_dir = None
+
+        self.db = None
+
+        self.input_shape = None
+        self.points_model = None
+
+        self.model_dir = None
+
+        self.model_file = None
+        self.model_weights_file = None
+
+        self.n_steps = None
+        self.n_features = None
+
+    def do_init(self, args):
+        self.output_dir = args["output_dir"] if "output_dir" in args.keys() else "Output/"
+
+        self.model_dir = args["model_dir"] if "model_dir" in args.keys() else self.output_dir+"training_dir/"+self.name+"/"
+        self.eval_dir = args["eval_dir"] if "eval_dir" in args.keys() else self.output_dir+"eval_dir/"+self.name+"/"
+        self.pred_dir = args["pred_dir"] if "pred_dir" in args.keys() else self.output_dir + "pred_dir/" + self.name + "/"
+
+        self.n_steps = args[
+            "n_steps"] if "n_steps" in args.keys() else 20
+        self.n_features = args[
+            "n_features"] if "n_features" in args.keys() else 1
+
+        self.model_file = os.path.join(os.path.dirname(self.model_dir), "model.h5")
+        self.eval_file = os.path.join(os.path.dirname(self.eval_dir), "eval.json")
+        self.pred_file = os.path.join(os.path.dirname(self.pred_dir), "pred.json")
+
+        self.intial_model = self.model_file.replace("model.h5", "initilaization" + ".h5")
+        #Evaluation Params
+        self.days_to_eval = args["days_to_eval"] if "days_to_eval" in args.keys() else 30
+
+        logging.info("Test")
+        logging.info("Initializeing, with params: %s", str([k for k in args.items()]))
+
+        self.db = DB_Ops()
+
+        self.companies_count = self.db.get_companies_count()
+
+        self.lstm_model = self.model_init()
+
+    def model_init(self):
+
+        # define model
+        model = Sequential()
+        #
+        model.add(Bidirectional(LSTM(150, activation='relu'),  input_shape=(self.n_steps, self.n_features)))
+        # model.add(LSTM(100, return_sequences=True, activation='relu'))
+        # model.add(LSTM(150, return_sequences=True, activation='relu'))
+        # model.add(LSTM(100, return_sequences=True, activation='relu'))
+        # model.add(LSTM(50, activation='relu'))
+
+        # model = Sequential()
+        # model.add(TimeDistributed(Conv1D(filters=64, kernel_size=1, activation='relu'),
+        #                           input_shape=(None, 2, self.n_features)))
+        # model.add(TimeDistributed(MaxPooling1D(pool_size=2)))
+        # model.add(TimeDistributed(Flatten()))
+        # model.add(LSTM(50, activation='relu'))
+        # model.add(Dense(1))
+
+        model.add(Dense(2))
+
+        model.compile(optimizer='adam', loss='mse')
+
+        return model
+
+    def generate_train_data(self, column = "volume", stats = "max"):
+        company_list = self.db.get_list_companies()
+        total_companies = self.db.get_companies_count()
+
+        # max_items = self.db.get_max_rows()
+        max_items = 0
+        values_array, dates_array = [], []
+        for k in company_list:
+            v_temp, d_temp = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_array += [v_temp]
+            dates_array += [d_temp]
+
+            # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+        for k in dates_array:
+            if max_items < len(k):
+                max_items = len(k)
+
+        # i = 0
+        for i in range(len(company_list)):
+            if i == 0:
+                # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+                #max_items = len(dates_fetch)
+                values = np.zeros((total_companies, max_items))
+            # values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_fetch = values_array[i]
+            values[i, max_items - len(values_fetch):max_items] = values_fetch
+            # i += 1
+
+        weeks_to_eval = self.days_to_eval//7 if 1 else 0
+
+        total_samples_avail  = max_items - weeks_to_eval
+
+        train_samples = values[:,:total_samples_avail]
+
+        train_samples = (train_samples[:,1:] - train_samples[:,0:-1])/train_samples[:,0:-1]
+
+        #remove zeros, and infs
+        train_samples[np.isnan(train_samples)] = 0
+        train_samples[np.isinf(train_samples)] = 0
+
+        return train_samples
+
+    # split a univariate sequence
+    def split_sequence(self, sequence, n_steps):
+        X, y = list(), list()
+        for i in range(len(sequence)):
+            # find the end of this pattern
+            end_ix = i + n_steps
+            # check if we are beyond the sequence
+            if end_ix > len(sequence) - 2:
+                break
+            # gather input and output parts of the pattern
+            seq_x, seq_y = sequence[i:end_ix], [sequence[end_ix],sequence[end_ix+1]]
+
+            X.append(seq_x)
+            y.append(seq_y)
+        return np.array(X), np.array(y)
+
+    def do_train(self):
+        # get data
+        train_data = self.generate_train_data(column="high")
+
+        self.save_model(self.intial_model)
+        # import matplotlib.pyplot as plt
+        stock_no = 0
+        # avg_deg_1, avg_deg_2 = 0, 0
+        fitting_parmas = []
+        from sklearn.metrics import accuracy_score
+        for k in train_data:
+
+            self.lstm_model.load_weights(self.intial_model)
+            this_model = self.model_file.replace("model.h5", str(stock_no)+".h5")
+
+            k = np.array(list(dropwhile(lambda x: x==0, k)))
+
+            k[k <= 0] = 0
+            k[k > 0] = 1
+
+            X, y = self.split_sequence(k, self.n_steps)
+
+            if not X.shape[0]:
+                self.save_model(this_model)
+                stock_no += 1
+                continue
+
+            X = X.reshape((X.shape[0], X.shape[1], self.n_features))
+
+            # n_seq = 2
+            # n_steps = 2
+            # X = X.reshape((X.shape[0], n_seq, n_steps, self.n_features))
+
+            self.lstm_model.fit(X, y, epochs=200, verbose=0)
+
+            self.save_model(this_model)
+
+
+            pred = self.lstm_model.predict(X)
+
+            pred = pred.flatten()
+            y = y.flatten()
+
+            pred[pred >= 0.5] = 1
+            pred[pred < 0.5] = 0
+
+            # print(pred, y)
+            print("Finised Training: ", stock_no, "accuracy =", accuracy_score(y, pred))
+            # for u, v in zip(pred, y):
+            #     u[u >= 0.5] = 1
+            #     u[u < 0.5] = 0
+            #     u = u.flatten()
+
+                # print("p", u, v)
+            # exit()
+            #
+            #
+            # slope_1, intercept_1 = np.polyfit(y[:,0], pred[:,0], 1)
+            # slope_2, intercept_2 = np.polyfit(y[:, 1], pred[:, 1], 1)
+            #
+            # fitting_parmas += [[slope_1, intercept_1, slope_2, intercept_2]]
+            # print("Finised Training: ", stock_no)
+            stock_no += 1
+
+        # pred_fitting = os.path.join(self.model_dir, "fit.npy")
+        # np.save(pred_fitting, fitting_parmas)
+            # print(np.rad2deg(np.arctan(slope_1)))
+            # print(np.arctan(slope_2))
+            # dif_p, dif_a = [], []
+            # for p, a in zip(pred, y):
+            #     dif_p += [p[1] - p[0]]
+            #     dif_a += [a[1] - a[0]]
+            # #
+            # plt.plot(dif_p, dif_a, ".")
+            # day_1, day_2 = [], []
+            # for p, a in zip(pred, y):
+            #     day_1 += [p[0], a[0]]
+            #     day_2 += [p[1], a[1]]
+            # avg_deg_1 += 90-np.rad2deg(np.arctan(slope_1))
+            # avg_deg_2 += 90-np.rad2deg(np.arctan(slope_2))
+            #
+            # plt.plot(y[:,0] * slope_1 + intercept_1, y[:,0], 'g', label=90-np.rad2deg(np.arctan(slope_1)))
+            # plt.plot(y[:,1] * slope_2 + intercept_2, y[:,1], 'r', label=90-np.rad2deg(np.arctan(slope_2)))
+            # plt.plot(pred[:,0], y[:,0],"g.")
+            # plt.plot(pred[:,1], y[:,1],"r.")
+            #
+            # print(stock_no, 90-np.rad2deg(np.arctan(slope_1)), 90-np.rad2deg(np.arctan(slope_2)), avg_deg_1/stock_no, avg_deg_2/stock_no)
+        # # print(avg_deg_1/stock_no)
+        # # print(avg_deg_2 / stock_no)
+        #
+        #     plt.legend()
+        #     plt.show()
+
+    def generate_eval_data(self, column = "open", stats = "max"):
+        company_list = self.db.get_list_companies()
+        total_companies = self.db.get_companies_count()
+
+        from_end = 1
+        weeks_to_eval = self.days_to_eval//7
+
+        max_items = 0
+        values_array, dates_array = [], []
+        for k in company_list:
+            v_temp, d_temp = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_array += [v_temp]
+            dates_array += [d_temp]
+
+            # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+        for k in dates_array:
+            if max_items < len(k):
+                max_items = len(k)
+
+        # i = 0
+        for i in range(len(company_list)):
+            if i == 0:
+                # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
+                # max_items = len(dates_fetch)
+                values = np.zeros((total_companies, max_items))
+            # values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
+            values_fetch = values_array[i][:-from_end]
+            values[i, max_items - len(values_fetch):max_items] = values_fetch
+
+        dates = dates_array[0][-(weeks_to_eval+ self.n_steps)-2:]
+
+        eval_samples = values[:, -(weeks_to_eval+ self.n_steps)-2:]
+        prices = eval_samples[:, 1:]
+
+        eval_samples = (eval_samples[:, 1:] - eval_samples[:, 0:-1]) / eval_samples[:, 0:-1]
+
+        # remove zeros, and infs
+        eval_samples[np.isnan(eval_samples)] = 0
+        eval_samples[np.isinf(eval_samples)] = 0
+
+        return eval_samples, dates, prices
+
+    def do_eval(self):
+        #### Computes overall average accuracy, per stock accuracy
+        # evaluation
+        eval_data, dates, prices_close = self.generate_eval_data(column="high")
+        stock_no = 0
+
+        def get_classes(vals):
+            vals = vals.flatten()
+            classes = np.zeros(vals.shape[0])
+            classes[vals >= 0.5] = 1
+
+            return classes
+
+        from sklearn.metrics import accuracy_score
+
+        y_true, y_pred = [], []
+        for k in eval_data:
+
+            this_model = self.model_file.replace("model.h5", str(stock_no) + ".h5")
+            self.lstm_model.load_weights(this_model)
+
+            k[k <= 0] = 0
+            k[k > 0] = 1
+
+            X, y = self.split_sequence(k, self.n_steps)
+
+            X = X.reshape((X.shape[0], X.shape[1], self.n_features))
+
+            predictions = self.lstm_model.predict(X)
+
+            classes_pred = get_classes(predictions)
+            classes_actual = y.flatten()
+            print(classes_pred)
+            print(classes_actual)
+
+            y_true.extend(classes_actual[2:])
+            y_pred.extend(classes_pred[2:])
+
+            stock_no += 1
+
+        print(accuracy_score(y_true, y_pred))
+
+
+
+
+
+    def save_model(self, model_weights):
+        # Create Folder
+        try:
+            os.makedirs(self.model_dir)
+        except OSError:
+            logging.warning("Creation of the directory %s failed" % self.model_dir)
+        else:
+            logging.info("Successfully created the directory %s " % self.model_dir)
+
+        self.lstm_model.save_weights(model_weights)
+        logging.info("Saving model weights to %s", self.model_file)
+
+
 class markov_o2_c2_w(FEModel):
 
     def __init__(self, args):
@@ -872,6 +1208,7 @@ class markov_o2_c2_w(FEModel):
         self.companies_count = self.db.get_companies_count()
 
         self.points_model = self.model_init()
+
 
 
 
@@ -1129,8 +1466,6 @@ class markov_o2_c2_w(FEModel):
         #### Computes overall average accuracy, per stock accuracy
         # evaluation
 
-
-
         transision_matrix = self.load_model()
 
         eval_data, dates, prices_close = self.generate_eval_data(column="high")
@@ -1208,6 +1543,7 @@ class markov_o2_c2_w(FEModel):
 
         y_true = eval_classes.flatten()
         y_pred = eval_pred.flatten()
+        print(y_true)
         # print(y_pred)
         # for g, p, a in zip(y_true, y_pred, eval_data.flatten()):
         #     if g == p:

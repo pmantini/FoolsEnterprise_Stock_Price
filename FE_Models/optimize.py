@@ -58,9 +58,9 @@ class Optimize:
         # stock_prefs = delta_p
         # stock_prefs = (stock_prefs - np.min(stock_prefs)) / (np.max(stock_prefs) - np.min(stock_prefs))
 
-        # best_ops = np.argsort(predictions)
-        best_ops = np.nonzero(predictions)[0]
-        np.random.shuffle(best_ops)
+        best_ops = np.argsort(predictions)
+        # best_ops = np.nonzero(predictions)[0]
+        # np.random.shuffle(best_ops)
 
         # best_ops = [k for k in range(len(predictions))]
         # print(best_ops)
