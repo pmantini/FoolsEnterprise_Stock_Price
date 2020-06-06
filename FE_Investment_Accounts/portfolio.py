@@ -10,6 +10,8 @@ import logging
 import os
 import shutil
 
+import time
+
 logging = logging.getLogger("main")
 
 
@@ -208,10 +210,8 @@ class Alpaca(FEPortfolio):
                 if list_of_orders[k[1]].side == "buy":
                     exp_date_str =  list_of_orders[k[1]].client_order_id.split("___")[1]
                     exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
-
-
-                    if (datetime.today().date() == self.list_of_orders[k[1]].created_at+timedelta(days=1)):
-                        self.desired_state[k[0]] = self.stock_position["b"]
+                    # if (datetime.today().date() == self.list_of_orders[k[1]].created_at+timedelta(days=1)):
+                    #     self.desired_state[k[0]] = self.stock_position["b"]
 
                     if datetime.today() > exp_date:
                         print("for cancelling")
@@ -263,6 +263,39 @@ class Alpaca(FEPortfolio):
             return np.load(file)
         else:
             raise Exception("%s does not have a valid file format (json or npy)")
+
+    def do_cleanup(self):
+        #Liqudate old orders
+        self.orders = self.investment_ac.get_all_order()
+        list_of_orders = {}
+
+        for k in self.orders:
+            list_of_orders[k.symbol] = k
+
+        for k in enumerate(list_of_orders.keys()):
+            if list_of_orders[k[1]].side == "sell":
+                try:
+                    exp_date_str = list_of_orders[k[1]].client_order_id.split("___")[1]
+                    exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
+                    if datetime.today() >= exp_date - timedelta(days=1):
+                        print("Predicted sell price expiring, Liquidating ", k[1])
+                        order_id = list_of_orders[k[1]].id
+
+                        print("Liqudating asset %s, %s" % (order_id, k[1]))
+                        resp = self.investment_ac.cancel_order(order_id)
+                        print("Canceling order: ", resp)
+                        time.sleep(60)
+                        resp = self.investment_ac.liquidate_position(k[1])
+                        print("Liquidating order ", resp)
+                except:
+                    print("No Exp date, Liqudating")
+                    order_id = list_of_orders[k[1]].id
+                    print("Liqudating asset %s, %s" % (order_id, k[1]))
+                    resp = self.investment_ac.cancel_order(order_id)
+                    print("Canceling order: ", resp)
+                    time.sleep(60)
+                    resp = self.investment_ac.liquidate_position(k[1])
+                    print("Liquidating order ", resp)
 
     def do_run(self):
         self.generate_current_state()
