@@ -164,6 +164,7 @@ class Alpaca(FEPortfolio):
             elif k[1] in list_of_positions.keys():
                 self.current_state[k[0]] = self.stock_position["h"]
 
+
         return self.current_state
 
 
@@ -186,7 +187,7 @@ class Alpaca(FEPortfolio):
 
 
         for k in enumerate(self.assets):
-
+        # for k in enumerate(list_of_orders.keys()):
             if k[1] in self.strategy_actions.keys():
                 self.desired_state[k[0]] = self.stock_position["b"]
                 print(self.strategy_actions[k[1]])
@@ -199,32 +200,34 @@ class Alpaca(FEPortfolio):
 
 
             if k[1] in list_of_positions.keys():
-                print(k)
+                # print(k)
                 self.desired_state[k[0]] = self.stock_position["s"]
 
             if k[1] in list_of_orders.keys():
-                print(list_of_orders[k[1]].side)
+                print(k, list_of_orders[k[1]].side)
                 if list_of_orders[k[1]].side == "buy":
                     exp_date_str =  list_of_orders[k[1]].client_order_id.split("___")[1]
                     exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
-                    print(self.assets[k[0]], exp_date)
 
 
+                    if (datetime.today().date() == self.list_of_orders[k[1]].created_at+timedelta(days=1)):
+                        self.desired_state[k[0]] = self.stock_position["b"]
 
                     if datetime.today() > exp_date:
-
                         print("for cancelling")
                         self.desired_state[k[0]] = self.stock_position["n"]
                 elif list_of_orders[k[1]].side == "sell":
                     try:
                         exp_date_str = list_of_orders[k[1]].client_order_id.split("___")[1]
                         exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d')
-                        print(self.assets[k[0]], exp_date)
+
+                        # print("------------", self.assets[k[0]], exp_date, exp_date-timedelta(days=1))
                         if self.liquidateifcannotsell:
 
                             if datetime.today() >= exp_date-timedelta(days=1):
                                 print("Predicted sell price expiring, Liquidating")
                                 self.desired_state[k[0]] = self.stock_position["l"]
+
                     except:
                         if self.liquidateifcannotsell:
                             print("Unable to retirve sell expiry, liqidating")
@@ -268,9 +271,14 @@ class Alpaca(FEPortfolio):
         for k  in enumerate(self.current_state):
 
             if self.current_state[k[0]] != self.desired_state[k[0]]:
-                print(self.assets[k[0]], self.stock_position_name[k[1]], self.stock_position_name[self.desired_state[k[0]]])
-
+                # print(self.assets[k[0]], self.stock_position_name[k[1]], self.stock_position_name[self.desired_state[k[0]]])
                 this_asset = self.assets[k[0]]
+
+                if self.stock_position_name[self.current_state[k[0]]] == "holding" and self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
+                    print("Already holding %s, passing limit_buy order" % this_asset)
+                    pass
+
+
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
                     #to avoid investing in ARCA
                     if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
