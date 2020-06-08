@@ -316,7 +316,7 @@ class Alpaca(FEPortfolio):
                     #to avoid investing in ARCA
                     if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
                         print("Skipping %s, because it belongs to exchnage %s" % (this_asset, self.investment_ac.get_asset(this_asset).exchange))
-                    continue
+                        continue
 
                     try:
                         buy_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
