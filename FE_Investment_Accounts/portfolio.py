@@ -314,11 +314,12 @@ class Alpaca(FEPortfolio):
 
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
                     #to avoid investing in ARCA
-                    if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
-                        print("Skipping %s, because it belongs to exchnage %s" % (this_asset, self.investment_ac.get_asset(this_asset).exchange))
-                        continue
-
                     try:
+                        if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
+                            print("Skipping %s, because it belongs to exchnage %s" % (this_asset, self.investment_ac.get_asset(this_asset).exchange))
+                            continue
+
+
                         buy_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
                         # buy_order_name = this_asset + "___" + (datetime.today() - timedelta(days=2)).strftime(
                         #     '%Y-%m-%d')
