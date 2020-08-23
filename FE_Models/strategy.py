@@ -409,6 +409,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         low_prices = self.generate_train_data(column1="close", column2="low")
         high_prices = self.generate_train_data(column1="close", column2="high")
 
+
         indices_when_stock_decreased, differnece_when_decreased = np.zeros((close_prices.shape)), np.zeros((close_prices.shape))
         indices_when_stock_increased, differnece_when_increased = np.zeros((close_prices.shape)), np.zeros((close_prices.shape))
 
@@ -419,10 +420,12 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         differnece_when_decreased[indices_when_stock_decreased == 1] = low_prices[indices_when_stock_decreased == 1]
         differnece_when_increased[indices_when_stock_increased == 1] = high_prices[indices_when_stock_increased == 1]
 
-
         for k,j in zip(differnece_when_decreased,differnece_when_increased):
 
             decrease, increase = k[k != 0], j[j != 0]
+
+            decrease[decrease <= -0.5] = np.mean(decrease)
+            increase[increase >= 0.5] = np.mean(increase)
 
             if len(decrease) and len(increase):
 
@@ -468,6 +471,31 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
     #     train_samples[np.isinf(train_samples)] = 0
     #
     #     return train_samples
+
+    def get_prices(self, column1="high"):
+
+        company_list = self.db.get_list_companies()
+        total_companies = self.db.get_companies_count()
+
+        max_items = self.db.get_max_rows()
+
+        values1 = np.zeros((total_companies, max_items))
+        values2 = np.zeros((total_companies, max_items))
+
+        i = 0
+        for k in company_list:
+            values_fetch1, _ = self.db.get_values_company(company_sym=k, columns=column1)
+            values1[i, max_items - len(values_fetch1):max_items] = values_fetch1
+
+
+            i += 1
+
+        total_samples_avail = max_items
+
+        train_samples1 = values1[:, :total_samples_avail]
+
+
+        return train_samples1
 
     def generate_train_data(self, column1 = "volume", column2 = None):
         if not column2:
@@ -615,7 +643,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         return pred_samples, dates, prices
 
 
-    def generate_actions(self, pred_data, close_prices, resource, number_of_stocks):
+    def generate_actions(self, pred_data, close_prices, high_prices, resource, number_of_stocks):
 
         list_possible = []
 
@@ -667,7 +695,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
                 predictions[i] = 0
 
         optimizer = Optimize()
-        stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), resource=resource, number_of_stocks=number_of_stocks)
+        stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), high_prices, resource=resource, number_of_stocks=number_of_stocks)
 
         buy_prices, sell_price = [], []
         sell_ratio = []
@@ -686,14 +714,15 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         # load pred file
         pred_data = self.load_model(self.pred_file)
         _, dates, close_prices = self.generate_pred_data(column="close")
+        high_price = self.get_prices(column1="high")
 
-
-        stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(pred_data, close_prices,
+        stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(pred_data, close_prices, high_price,
                                                                                  resource=self.resource, number_of_stocks=self.number_of_stocks)
 
         actions = {}
         for k in range(len(stocks)):
             print(self.company_list[stocks[k]], qunts[k], buy_price[k], sell_price[k])
+
             actions[self.company_list[stocks[k]]]={"quantity": qunts[k], "buy": buy_price[k], "sell": sell_price[k],
                                                    "sell_ratio": sell_ratio[k],
                                                    "buy_exp":pred_data[self.company_list[stocks[k]]]["date"][0],

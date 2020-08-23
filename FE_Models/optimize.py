@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import linprog
+from sklearn.linear_model import LinearRegression
 
 class Optimize:
 
@@ -37,8 +38,22 @@ class Optimize:
 
         return choices, qunatities
 
-    def random_selection(self, predictions, prices, confidence=None, resource=5000, number_of_stocks=6, min_price = 5):
+    def random_selection(self, predictions, prices, high_prices, confidence=None, resource=5000, number_of_stocks=6, min_price = 5):
         """ Multiply class values with probabilities, and then minimize risk by spreading out investments"""
+
+        def get_co_efficients(prices, count_from_last):
+            list_of_prices_low = np.array(prices[-count_from_last:])
+
+            values = list_of_prices_low
+
+            x, y = np.array([ind for ind in np.arange(5)]).reshape(-1, 1), values.reshape(-1, 1)
+
+            model = LinearRegression().fit(x, y)
+            x_new = np.arange(5).reshape((-1, 1))
+
+            reg_line = model.predict(x_new)
+
+            return model.coef_[0][0]
 
         def get_resources(investments=[1500, 1000, 500, 250, 175, 75]):
             investments = [2*(k+1)*resource/((number_of_stocks+1)*number_of_stocks) for k in range(number_of_stocks)]
@@ -70,6 +85,11 @@ class Optimize:
         resource_gen = get_resources()
         current_resource = next(resource_gen)
         for best in best_ops:
+            this_coeff = get_co_efficients(high_prices[best], 5)
+            if this_coeff > 2:
+                print("Skipping as the coefficent (%s) is > %s (Risky)" % (this_coeff, 2))
+                continue
+
             # random_value = np.random.random()
             if prices[best] < min_price:
                 continue
