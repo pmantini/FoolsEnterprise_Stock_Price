@@ -5,6 +5,9 @@ from FE_Models.model_DB_Reader import DB_Ops
 from FE_Models.optimize import Optimize
 import json
 from setup import mount_folder
+import matplotlib.pyplot as plt
+from scipy import stats
+
 logging = logging.getLogger("main")
 
 class FEStrategy:
@@ -339,7 +342,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
     def __init__(self, args):
         self.name = self.__class__.__name__
         self.req_args = ['model']
-        self.opt_args = ['output_dir', "resource", "number_of_stocks", "investment_account"]
+        self.opt_args = ['output_dir', "resource", "number_of_stocks", "investment_account", "dropout"]
         FEStrategy.__init__(self, self.name, self.req_args, self.opt_args)
 
         self.company_list = None
@@ -385,6 +388,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
         self.resource = float(args["resource"]) if "resource" in args.keys() else float(self.account["cash"])
         self.number_of_stocks = int(args["number_of_stocks"]) if "number_of_stocks" in args.keys() else 5
+        self.dropout = int(args["dropout"]) if "dropout" in args.keys() else 0.25
 
         self.eval_file = os.path.join(os.path.dirname(self.eval_dir), "eval.json")
         self.pred_file = os.path.join(os.path.dirname(self.pred_dir), "pred.json")
@@ -424,8 +428,19 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
             decrease, increase = k[k != 0], j[j != 0]
 
-            decrease[decrease <= -0.5] = np.mean(decrease)
-            increase[increase >= 0.5] = np.mean(increase)
+            # decrease[decrease <= np.mean(decrease) - 5*np.std(decrease)] = np.mode(decrease)
+            # increase[increase >= np.mean(increase) + 5*np.std(increase)] = np.median(increase)
+            # plt.figure("before")
+            # plt.plot(decrease)
+            # plt.plot(increase)
+            # print(np.mean(increase), np.mean(decrease))
+            decrease[decrease <= np.mean(decrease) - 5 * np.std(decrease)] = stats.mode(increase).mode
+            increase[increase >= np.mean(increase) + 5*np.std(increase)] = stats.mode(increase).mode
+            # print(np.mean(increase), np.mean(decrease))
+            # plt.figure("after")
+            # plt.plot(decrease)
+            # plt.plot(increase)
+            # plt.show()
 
             if len(decrease) and len(increase):
 
@@ -578,7 +593,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
         for day in range(1,days_count-1):
             temp_predict_data = {}
-            temp_close_price = np.zeros(len(self.company_list))
+            temp_close_price, temp_high_price = np.zeros(len(self.company_list)), np.zeros(len(self.company_list))
             for k in eval_data:
 
                 temp_predict_data[k] = {"prediction": eval_data[k]["pred"][day:day+2]}
@@ -586,9 +601,11 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
                 temp_close_price[self.company_list.index(k)] = eval_data[k]["close"][day-1]
 
+                temp_high_price[self.company_list.index(k)] = eval_data[k]["high"][day-1]
 
-            stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(temp_predict_data, np.array(temp_close_price),
-                                                                                     resource=self.resource, number_of_stocks=self.number_of_stocks)
+
+            stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(temp_predict_data, np.array(temp_close_price), np.array(temp_high_price),
+                                                                                     resource=self.resource, number_of_stocks=self.number_of_stocks, dropout = self.dropout)
 
             total = 0
             for k in range(len(stocks)):
@@ -607,7 +624,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
             print(total)
             day += 1
-            exit()
+            # exit()
 
 
     def generate_pred_data(self, column = "open"):
@@ -643,7 +660,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         return pred_samples, dates, prices
 
 
-    def generate_actions(self, pred_data, close_prices, high_prices, resource, number_of_stocks):
+    def generate_actions(self, pred_data, close_prices, high_prices, resource, number_of_stocks, dropout = 0.25):
 
         list_possible = []
 
@@ -694,12 +711,15 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
             else:
                 predictions[i] = 0
 
+
         optimizer = Optimize()
-        stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), high_prices, resource=resource, number_of_stocks=number_of_stocks)
+        stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), high_prices, resource=resource, number_of_stocks=number_of_stocks, dropout = self.dropout)
 
         buy_prices, sell_price = [], []
         sell_ratio = []
         for k in stock:
+            # print(k, drop[k], pop[k])
+
             # print(close_prices[k], close_prices[k] * (1+drop[k]), close_prices[k] * (1+drop[k]) * (1+pop[k]))
             buy_prices += [close_prices[k] * (1+drop[k])]
             sell_price += [close_prices[k] * (1+drop[k]) * (1+pop[k])]
@@ -717,11 +737,11 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         high_price = self.get_prices(column1="high")
 
         stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(pred_data, close_prices, high_price,
-                                                                                 resource=self.resource, number_of_stocks=self.number_of_stocks)
+                                                                                 resource=self.resource, number_of_stocks=self.number_of_stocks, dropout=0.25)
 
         actions = {}
         for k in range(len(stocks)):
-            print(self.company_list[stocks[k]], qunts[k], buy_price[k], sell_price[k])
+            print(stocks[k], self.company_list[stocks[k]], qunts[k], buy_price[k], sell_price[k])
 
             actions[self.company_list[stocks[k]]]={"quantity": qunts[k], "buy": buy_price[k], "sell": sell_price[k],
                                                    "sell_ratio": sell_ratio[k],

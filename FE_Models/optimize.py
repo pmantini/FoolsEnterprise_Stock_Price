@@ -38,7 +38,7 @@ class Optimize:
 
         return choices, qunatities
 
-    def random_selection(self, predictions, prices, high_prices, confidence=None, resource=5000, number_of_stocks=6, min_price = 5):
+    def random_selection(self, predictions, prices, high_prices, confidence=None, resource=5000, number_of_stocks=6, min_price = 5, dropout = 0.25):
         """ Multiply class values with probabilities, and then minimize risk by spreading out investments"""
 
         def get_co_efficients(prices, count_from_last):
@@ -51,7 +51,7 @@ class Optimize:
             model = LinearRegression().fit(x, y)
             x_new = np.arange(5).reshape((-1, 1))
 
-            reg_line = model.predict(x_new)
+            # reg_line = model.predict(x_new)
 
             return model.coef_[0][0]
 
@@ -85,13 +85,19 @@ class Optimize:
         resource_gen = get_resources()
         current_resource = next(resource_gen)
         for best in best_ops:
-            this_coeff = get_co_efficients(high_prices[best], 5)
-            if this_coeff > 2:
-                print("Skipping as the coefficent (%s) is > %s (Risky)" % (this_coeff, 2))
-                continue
+
+            # this_coeff = get_co_efficients(high_prices[best], 5)
+            # # print(best, this_coeff, predictions[best])
+            # if this_coeff > 2:
+            #     print("Skipping as the coefficent (%s) is > %s (Risky)" % (this_coeff, 2))
+            #     continue
 
             # random_value = np.random.random()
             if prices[best] < min_price:
+                continue
+
+            if np.random.random() < dropout:
+                print(best, ":Droped out")
                 continue
 
             if prices[best] < current_resource:

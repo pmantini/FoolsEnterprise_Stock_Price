@@ -1423,13 +1423,14 @@ class markov_o2_c2_w(FEModel):
 
         matclasses2 = np.zeros((matclasses.shape[0], matclasses.shape[1] - 1), dtype=np.int)
 
-        labels_print = range(2)
-        for i in labels_print:
-            for j in labels_print:
-                print(i, j, i * 2 + j)
+        # labels_print = range(2)
+        # for i in labels_print:
+        #     for j in labels_print:
+        #         print(i, j, i * 2 + j)
 
         k = 0
         for stock in matclasses:
+
             two_days_classes = [(1 + len(labels)) * i + j for i, j in zip(stock[:-1], stock[1:])]
             matclasses2[k] = two_days_classes
             k += 1
