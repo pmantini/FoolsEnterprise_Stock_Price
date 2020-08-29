@@ -713,7 +713,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
 
         optimizer = Optimize()
-        stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), high_prices, resource=resource, number_of_stocks=number_of_stocks, dropout = self.dropout)
+        stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), high_prices, resource=resource, number_of_stocks=number_of_stocks, dropout = dropout)
 
         buy_prices, sell_price = [], []
         sell_ratio = []
@@ -737,7 +737,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         high_price = self.get_prices(column1="high")
 
         stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(pred_data, close_prices, high_price,
-                                                                                 resource=self.resource, number_of_stocks=self.number_of_stocks, dropout=0.25)
+                                                                                 resource=self.resource, number_of_stocks=self.number_of_stocks, dropout=self.dropout)
 
         actions = {}
         for k in range(len(stocks)):
