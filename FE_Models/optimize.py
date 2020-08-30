@@ -86,11 +86,11 @@ class Optimize:
         current_resource = next(resource_gen)
         for best in best_ops:
 
-            # this_coeff = get_co_efficients(high_prices[best], 5)
+            this_coeff = get_co_efficients(high_prices[best], 5)
             # # print(best, this_coeff, predictions[best])
-            # if this_coeff > 2:
-            #     print("Skipping as the coefficent (%s) is > %s (Risky)" % (this_coeff, 2))
-            #     continue
+            if abs(this_coeff) > 2:
+                print("Skipping as the coefficent (%s) is > %s (Risky)" % (this_coeff, 2))
+                continue
 
             # random_value = np.random.random()
             if prices[best] < min_price:
