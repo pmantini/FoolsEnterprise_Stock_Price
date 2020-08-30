@@ -434,8 +434,12 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
             # plt.plot(decrease)
             # plt.plot(increase)
             # print(np.mean(increase), np.mean(decrease))
-            decrease[decrease <= np.mean(decrease) - 5 * np.std(decrease)] = stats.mode(increase).mode
-            increase[increase >= np.mean(increase) + 5*np.std(increase)] = stats.mode(increase).mode
+            try:
+                decrease[decrease <= np.mean(decrease) - 5 * np.std(decrease)] = stats.mode(decrease).mode
+                increase[increase >= np.mean(increase) + 5*np.std(increase)] = stats.mode(increase).mode
+            except:
+                decrease[decrease <= np.mean(decrease) - 5 * np.std(decrease)] = np.mean(decrease)
+                increase[increase >= np.mean(increase) + 5 * np.std(increase)] = np.mean(increase)
             # print(np.mean(increase), np.mean(decrease))
             # plt.figure("after")
             # plt.plot(decrease)
