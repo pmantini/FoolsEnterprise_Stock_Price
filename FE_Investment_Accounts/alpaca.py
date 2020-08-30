@@ -1,5 +1,6 @@
 import alpaca_trade_api as tradeapi
 from setup import *
+from .myrest import MyRest
 
 class FE_Alpaca:
 
@@ -15,7 +16,8 @@ class FE_Alpaca:
             API_SECRET = self.read_file(alpaca_api_paper_secret_key_file)
             APCA_API_BASE_URL = "https://paper-api.alpaca.markets"
 
-        self.alpaca = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
+        # self.alpaca = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
+        self.alpaca = MyRest(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
         self.account = self.alpaca.get_account()
 
     def get_account_details(self):
@@ -81,6 +83,18 @@ class FE_Alpaca:
             raise Exception("Asset %s not tradable" % sym)
         else:
             return self.alpaca.submit_order(sym, qty, side, type, time_in_force="gtc", limit_price=limit, client_order_id=id)
+
+    def order_OCO(self, sym, qty, side, limit_p, stop_loss, limit_l, id, type="limit", ):
+        if not self.is_asset_active(sym):
+            print("Asset %s not active" % sym)
+            raise Exception("Asset %s not active" % sym)
+        elif not self.is_asset_tradable(sym):
+            print("Asset %s not tradable" % sym)
+            raise Exception("Asset %s not tradable" % sym)
+        else:
+            return self.alpaca.submit_order_oco(sym, qty, side, type, time_in_force="gtc", limit_price_p=limit_p, stop_price=stop_loss,
+                                                limit_price_l=limit_l, client_order_id=id)
+
 
     def cancel_order(self, id):
         self.alpaca.cancel_order(id)

@@ -153,7 +153,6 @@ class Alpaca(FEPortfolio):
         for k in positions:
             list_of_positions[k.symbol] = k
 
-
         for k in enumerate(self.assets):
 
             if k[1] in self.list_of_orders.keys():
@@ -313,6 +312,7 @@ class Alpaca(FEPortfolio):
 
 
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
+
                     #to avoid investing in ARCA
                     try:
                         if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
@@ -333,10 +333,13 @@ class Alpaca(FEPortfolio):
                         pass
 
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_sell":
-
+                    print("limit sell: ", this_asset)
                     try:
 
                         avg_buy_price = self.investment_ac.get_position(this_asset).avg_entry_price
+                        stop_loss_price = float(avg_buy_price)*0.8
+                        limit_sell_l = float(stop_loss_price)*0.99
+
                         if this_asset in self.sell_info.keys():
                             new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
                             sell_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
@@ -350,12 +353,15 @@ class Alpaca(FEPortfolio):
                         # sell_order_name = this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
                         #     '%Y-%m-%d')
                         available_qty = self.investment_ac.get_position(this_asset).qty
-                        order_resp = self.investment_ac.order(this_asset, int(available_qty), "sell",
-                                                 new_sell_price, sell_order_name)
+                        # order_resp = self.investment_ac.order(this_asset, int(available_qty), "sell",
+                        #                          new_sell_price, sell_order_name)
+                        order_resp = self.investment_ac.order_OCO(this_asset, int(available_qty), "sell",
+                                                              new_sell_price, stop_loss_price, limit_sell_l, sell_order_name)
                         print(order_resp)
+
                     except:
                         print("Unexpected error:", sys.exc_info())
-                        print("Failed to buy: ", this_asset)
+                        print("Failed to Sell: ", this_asset)
                         pass
 
                 if self.stock_position_name[self.desired_state[k[0]]] == "not_holding" and \
@@ -364,12 +370,12 @@ class Alpaca(FEPortfolio):
                         print("Canceling order %s, %s" % (order_id, this_asset))
                         self.investment_ac.cancel_order(order_id)
 
-                if self.stock_position_name[self.desired_state[k[0]]] == "limit_sell" and \
-                        self.stock_position_name[self.current_state[k[0]]] == "liquidate":
-                        order_id = self.list_of_orders[this_asset].id
-                        print("Liqudating asset %s, %s" % (order_id, this_asset))
-                        self.investment_ac.cancel_order(order_id)
-                        self.investment_ac.liquidate_position(this_asset)
+                # if self.stock_position_name[self.desired_state[k[0]]] == "limit_sell" and \
+                #         self.stock_position_name[self.current_state[k[0]]] == "liquidate":
+                #         order_id = self.list_of_orders[this_asset].id
+                #         print("Liqudating asset %s, %s" % (order_id, this_asset))
+                #         self.investment_ac.cancel_order(order_id)
+                #         self.investment_ac.liquidate_position(this_asset)
 
 
         self.save_sell_info()
