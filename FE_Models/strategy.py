@@ -643,12 +643,14 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         for k in company_list:
             if i == 0:
                 _, dates_fetch = self.db.get_values_company(company_sym=k)
+
             values_fetch, _ = self.db.get_values_company(company_sym=k, columns=column)
-            values_fetch = values_fetch[:-1]
+            # values_fetch = values_fetch[:-1]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
             i += 1
 
         dates = dates_fetch[-1:]
+
         prices = values[:, -1:]
 
         pred_samples = values[:, -2:]
@@ -725,6 +727,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
             # print(k, drop[k], pop[k])
 
             # print(close_prices[k], close_prices[k] * (1+drop[k]), close_prices[k] * (1+drop[k]) * (1+pop[k]))
+            print("Close: ", close_prices[k], "Drop: ", (1+drop[k]))
             buy_prices += [close_prices[k] * (1+drop[k])]
             sell_price += [close_prices[k] * (1+drop[k]) * (1+pop[k])]
             sell_ratio += [(1+pop[k])]
@@ -738,7 +741,9 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
         # load pred file
         pred_data = self.load_model(self.pred_file)
         _, dates, close_prices = self.generate_pred_data(column="close")
+
         high_price = self.get_prices(column1="high")
+
 
         stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(pred_data, close_prices, high_price,
                                                                                  resource=self.resource, number_of_stocks=self.number_of_stocks, dropout=self.dropout)
@@ -1079,7 +1084,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPrediciton(FEStrategy):
             if i == 0:
                 _, dates_fetch = self.db.get_values_company(company_sym=k)
             values_fetch, _ = self.db.get_values_company(company_sym=k, columns=column)
-            values_fetch = values_fetch[:-1]
+            # values_fetch = values_fetch[:-1]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
             i += 1
 
@@ -1103,13 +1108,12 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPrediciton(FEStrategy):
 
         list_possible = []
 
-
         for k in pred_data:
-            if pred_data[k]["prediction"][0] == 0 and pred_data[k]["prediction"][1] ==  2:
-                list_possible += [k]
-
-            # if pred_data[k]["prediction"][0] == 1 and pred_data[k]["prediction"][1] == 2:
+            # if pred_data[k]["prediction"][0] == 0 and pred_data[k]["prediction"][1] ==  2:
             #     list_possible += [k]
+
+            if pred_data[k]["prediction"][0] == 1 and pred_data[k]["prediction"][1] == 2:
+                list_possible += [k]
 
         # get prices
 
@@ -1161,7 +1165,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPrediciton(FEStrategy):
         sell_ratio = []
         for k in stock:
             # print(k, drop[k], pop[k])
-
+            print("Close: ", close_prices[k], "Drop: ", (1 + drop[k]))
             # print(close_prices[k], close_prices[k] * (1+drop[k]), close_prices[k] * (1+drop[k]) * (1+pop[k]))
             buy_prices += [close_prices[k] * (1+drop[k])]
             sell_price += [close_prices[k] * (1+drop[k]) * (1+pop[k])]

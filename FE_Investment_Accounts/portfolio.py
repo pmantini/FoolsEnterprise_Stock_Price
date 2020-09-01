@@ -302,6 +302,7 @@ class Alpaca(FEPortfolio):
 
         for k  in enumerate(self.current_state):
 
+
             if self.current_state[k[0]] != self.desired_state[k[0]]:
                 # print(self.assets[k[0]], self.stock_position_name[k[1]], self.stock_position_name[self.desired_state[k[0]]])
                 this_asset = self.assets[k[0]]
