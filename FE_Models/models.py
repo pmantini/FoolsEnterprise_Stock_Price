@@ -16,6 +16,8 @@ from keras.layers import TimeDistributed
 from keras.layers.convolutional import Conv1D
 from keras.layers.convolutional import MaxPooling1D
 
+from keras.utils import to_categorical
+
 import numpy as np
 
 import logging
@@ -889,7 +891,7 @@ class lstm_w(FEModel):
         # define model
         model = Sequential()
         #
-        model.add(Bidirectional(LSTM(150, activation='relu'),  input_shape=(self.n_steps, self.n_features)))
+        model.add(Bidirectional(LSTM(150, activation='relu'), input_shape=(self.n_steps, self.n_features)))
         # model.add(LSTM(100, return_sequences=True, activation='relu'))
         # model.add(LSTM(150, return_sequences=True, activation='relu'))
         # model.add(LSTM(100, return_sequences=True, activation='relu'))
@@ -903,7 +905,8 @@ class lstm_w(FEModel):
         # model.add(LSTM(50, activation='relu'))
         # model.add(Dense(1))
 
-        model.add(Dense(2))
+        model.add(Dense(3))
+
 
         model.compile(optimizer='adam', loss='mse')
 
@@ -958,10 +961,11 @@ class lstm_w(FEModel):
             # find the end of this pattern
             end_ix = i + n_steps
             # check if we are beyond the sequence
-            if end_ix > len(sequence) - 2:
+            if end_ix > len(sequence) - 1:
                 break
             # gather input and output parts of the pattern
-            seq_x, seq_y = sequence[i:end_ix], [sequence[end_ix],sequence[end_ix+1]]
+
+            seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
 
             X.append(seq_x)
             y.append(seq_y)
@@ -977,6 +981,10 @@ class lstm_w(FEModel):
         # avg_deg_1, avg_deg_2 = 0, 0
         fitting_parmas = []
         from sklearn.metrics import accuracy_score
+        global_1, global_1_y = [], []
+        global_2, global_2_y = [], []
+        global_pred = []
+        global_t = []
         for k in train_data:
 
             self.lstm_model.load_weights(self.intial_model)
@@ -984,11 +992,14 @@ class lstm_w(FEModel):
 
             k = np.array(list(dropwhile(lambda x: x==0, k)))
 
-            k[k <= 0] = 0
-            k[k > 0] = 1
+            k[k <= -0.01] = -1
+            k = np.array([0 if r >= -0.01 and r <= 0.01 else r for r in k])
+            k[k > 0.01] = 1
+            k += 1
 
-            X, y = self.split_sequence(k, self.n_steps)
 
+            X, y_ = self.split_sequence(k, self.n_steps)
+            y = to_categorical(y_, 3)
             if not X.shape[0]:
                 self.save_model(this_model)
                 stock_no += 1
@@ -1000,21 +1011,33 @@ class lstm_w(FEModel):
             # n_steps = 2
             # X = X.reshape((X.shape[0], n_seq, n_steps, self.n_features))
 
-            self.lstm_model.fit(X, y, epochs=200, verbose=0)
+
+            self.lstm_model.fit(X[:-2], y[:-2], epochs=200, verbose=0)
 
             self.save_model(this_model)
 
 
-            pred = self.lstm_model.predict(X)
+            pred_1 = np.argmax(self.lstm_model.predict(np.expand_dims(X[-2], axis=0)))
+            X[-1][-1] = pred_1
+            pred_2 = np.argmax(self.lstm_model.predict(np.expand_dims(X[-1], axis=0)))
 
-            pred = pred.flatten()
-            y = y.flatten()
+            pred = [pred_1, pred_2]
+            y = y_[-2:].flatten()
+            global_1 += [pred_1]
+            global_1_y += [y[0]]
 
-            pred[pred >= 0.5] = 1
-            pred[pred < 0.5] = 0
+            global_2 += [pred_2]
+            global_2_y += [y[1]]
+
+            global_t += [y]
+            global_pred += [pred]
+            # pred[pred >= 0.5] = 1
+            # pred[pred < 0.5] = 0
 
             # print(pred, y)
-            print("Finised Training: ", stock_no, "accuracy =", accuracy_score(y, pred))
+            print("Finised Training: ", stock_no, "accuracy =", accuracy_score(y, pred), y, pred, "------", "Running: ", accuracy_score(np.array(global_t).flatten(), np.array(global_pred).flatten()),
+                  "1: ", accuracy_score(np.array(global_1_y).flatten(), np.array(global_1).flatten()), "2: ", accuracy_score(np.array(global_2_y).flatten(), np.array(global_2).flatten()) )
+
             # for u, v in zip(pred, y):
             #     u[u >= 0.5] = 1
             #     u[u < 0.5] = 0

@@ -857,9 +857,8 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPrediciton(FEStrategy):
         indices_when_stock_decreased, differnece_when_decreased = np.zeros((close_prices.shape)), np.zeros((close_prices.shape))
         indices_when_stock_increased, differnece_when_increased = np.zeros((close_prices.shape)), np.zeros((close_prices.shape))
 
-        indices_when_stock_decreased[close_prices < 0] = 1
-        indices_when_stock_increased[close_prices > 0] = 1
-
+        indices_when_stock_decreased[close_prices <= -0.01] = 1
+        indices_when_stock_increased[close_prices >= 0.01] = 1
 
         differnece_when_decreased[indices_when_stock_decreased == 1] = low_prices[indices_when_stock_decreased == 1]
         differnece_when_increased[indices_when_stock_increased == 1] = high_prices[indices_when_stock_increased == 1]
