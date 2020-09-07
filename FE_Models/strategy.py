@@ -610,14 +610,27 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
             stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(temp_predict_data, np.array(temp_close_price), np.array(temp_high_price),
                                                                                      resource=self.resource, number_of_stocks=self.number_of_stocks, dropout = self.dropout)
-
             total = 0
+            below_ask = 1
             for k in range(len(stocks)):
-                b_status = "bought" if buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][
+                b_status = "bought" if below_ask * buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][
                     day + 1] else "not_bought"
-                profit = (sell_price[k]-buy_price[k])*qunts[k] if buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][day + 1] \
-                                                                  and sell_price[k] <= eval_data[self.company_list[stocks[k]]]["high"][day + 2] else ((eval_data[self.company_list[stocks[k]]]["close"][day+1] - buy_price[k])*qunts[k]
-                                                                                                                                                      if b_status == "bought" else 0)
+
+                profit = (sell_price[k] - below_ask * buy_price[k]) * qunts[k] if below_ask * buy_price[k] >= eval_data[
+                    self.company_list[stocks[k]]]["low"][day + 1] \
+                                                                                  and sell_price[k] <= eval_data[
+                                                                                      self.company_list[stocks[k]]][
+                                                                                      "high"][day + 2] else (
+                    (eval_data[self.company_list[stocks[k]]]["close"][day + 1] - below_ask * buy_price[k]) * qunts[k]
+                    if b_status == "bought" else 0)
+
+            # total = 0
+            # for k in range(len(stocks)):
+            #     b_status = "bought" if buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][
+            #         day + 1] else "not_bought"
+            #     profit = (sell_price[k]-buy_price[k])*qunts[k] if buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][day + 1] \
+            #                                                       and sell_price[k] <= eval_data[self.company_list[stocks[k]]]["high"][day + 2] else ((eval_data[self.company_list[stocks[k]]]["close"][day+1] - buy_price[k])*qunts[k]
+            #                                                                                                                                           if b_status == "bought" else 0)
 
 
 
@@ -672,7 +685,7 @@ class RandomSelectionForTwoTimeStepWeeklyPrediciton(FEStrategy):
 
 
         for k in pred_data:
-            if not pred_data[k]["prediction"][0] and pred_data[k]["prediction"][1]:
+            if pred_data[k]["prediction"][0] and pred_data[k]["prediction"][1]:
                 list_possible += [k]
 
         # get prices
@@ -860,6 +873,9 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPrediciton(FEStrategy):
         indices_when_stock_decreased[close_prices <= -0.01] = 1
         indices_when_stock_increased[close_prices >= 0.01] = 1
 
+        # indices_when_stock_decreased[close_prices < 0] = 1
+        # indices_when_stock_increased[close_prices > 0] = 1
+
         differnece_when_decreased[indices_when_stock_decreased == 1] = low_prices[indices_when_stock_decreased == 1]
         differnece_when_increased[indices_when_stock_increased == 1] = high_prices[indices_when_stock_increased == 1]
 
@@ -1033,7 +1049,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPrediciton(FEStrategy):
         for k in eval_data:
             days_count = len(eval_data[k]["dates"])
 
-
+        print(days_count, eval_data[k]["dates"], eval_data[k]["close"])
         for day in range(1,days_count-1):
             temp_predict_data = {}
             temp_close_price, temp_high_price = np.zeros(len(self.company_list)), np.zeros(len(self.company_list))
@@ -1051,13 +1067,15 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPrediciton(FEStrategy):
                                                                                      resource=self.resource, number_of_stocks=self.number_of_stocks, dropout = self.dropout)
 
             total = 0
+            below_ask = 1
             for k in range(len(stocks)):
-                b_status = "bought" if buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][
+                b_status = "bought" if below_ask * buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][
                     day + 1] else "not_bought"
-                profit = (sell_price[k]-buy_price[k])*qunts[k] if buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][day + 1] \
-                                                                  and sell_price[k] <= eval_data[self.company_list[stocks[k]]]["high"][day + 2] else ((eval_data[self.company_list[stocks[k]]]["close"][day+1] - buy_price[k])*qunts[k]
-                                                                                                                                                      if b_status == "bought" else 0)
 
+                sell_price[k] = sell_price[k]* below_ask
+                profit = (sell_price[k]- below_ask * buy_price[k])*qunts[k] if below_ask *buy_price[k] >= eval_data[self.company_list[stocks[k]]]["low"][day + 1] \
+                                                                  and sell_price[k] <= eval_data[self.company_list[stocks[k]]]["high"][day + 2] else ((eval_data[self.company_list[stocks[k]]]["close"][day+1] - below_ask *buy_price[k])*qunts[k]
+                                                                                                                                                      if b_status == "bought" else 0)
 
 
                 print(self.company_list[stocks[k]], qunts[k], buy_price[k], eval_data[self.company_list[stocks[k]]]["low"][day + 1], b_status,
