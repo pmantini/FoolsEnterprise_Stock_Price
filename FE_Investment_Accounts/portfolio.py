@@ -44,7 +44,7 @@ class Alpaca(FEPortfolio):
 
         self.live = int(args.arg["live"])
         self.liquidateifcannotsell = int(args.arg["liquidateifcannotsell"])
-        self.strategy = args.arg["strategy"]
+        self.strategy = [k.strip() for k in args.arg["strategy"].split(",")]
 
         self.strategy_actions = None
 
@@ -83,7 +83,8 @@ class Alpaca(FEPortfolio):
         self.pred_dir = args["pred_dir"] if "pred_dir" in args.keys() else "pred_dir"
         self.pred_file = args["pred_file"] if "pred_file" in args.keys() else "pred.json"
 
-        self.strategy_file = os.path.join(os.path.join(self.strategy_input_dir, self.pred_dir), os.path.join(self.strategy,self.pred_file))
+        self.strategy_file = [os.path.join(os.path.join(self.strategy_input_dir, self.pred_dir), os.path.join(k,self.pred_file)) for k in self.strategy]
+
 
         self.portfolio_output_dir = args["portfolio_output_dir"] if "portfolio_output_dir" in args.keys() else "Output/Portfolio"
         self.sell_info_file = args["sell_info_file"] if "sell_info_file" in args.keys() else "sell_info_file.json"
@@ -174,8 +175,11 @@ class Alpaca(FEPortfolio):
 
         self.desired_state = np.zeros(len(self.assets))
 
-        #load strategy info
-        self.strategy_actions = self.load_model(self.strategy_file)
+        # load strategy info
+        self.strategy_actions= dict()
+        for k in self.strategy_file:
+            self.strategy_actions.update(self.load_model(k))
+
 
         self.orders = self.investment_ac.get_all_order()
         positions = self.investment_ac.get_all_positions()
