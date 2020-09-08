@@ -358,10 +358,10 @@ class Alpaca(FEPortfolio):
                         # sell_order_name = this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
                         #     '%Y-%m-%d')
                         available_qty = self.investment_ac.get_position(this_asset).qty
-                        # order_resp = self.investment_ac.order(this_asset, int(available_qty), "sell",
-                        #                          new_sell_price, sell_order_name)
-                        order_resp = self.investment_ac.order_OCO(this_asset, int(available_qty), "sell",
-                                                              new_sell_price, stop_loss_price, limit_sell_l, sell_order_name)
+                        order_resp = self.investment_ac.order(this_asset, int(available_qty), "sell",
+                                                 new_sell_price, sell_order_name)
+                        # order_resp = self.investment_ac.order_OCO(this_asset, int(available_qty), "sell",
+                        #                                       new_sell_price, stop_loss_price, limit_sell_l, sell_order_name)
                         print(order_resp)
 
                     except:
