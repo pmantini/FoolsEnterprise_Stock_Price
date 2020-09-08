@@ -145,11 +145,12 @@ class Alpaca(FEPortfolio):
         self.current_state = np.zeros(len(self.assets))
 
         orders = self.investment_ac.get_all_order()
+
         positions = self.investment_ac.get_all_positions()
         list_of_positions = {}
         for k in orders:
-
             self.list_of_orders[k.symbol] = k
+
 
         for k in positions:
             list_of_positions[k.symbol] = k
@@ -325,7 +326,7 @@ class Alpaca(FEPortfolio):
                             continue
 
 
-                        buy_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
+                        buy_order_name = datetime.today().strftime('%Y-%m-%d-%H')+this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
                         # buy_order_name = this_asset + "___" + (datetime.today() - timedelta(days=2)).strftime(
                         #     '%Y-%m-%d')
                         order_resp = self.investment_ac.order(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
@@ -347,10 +348,10 @@ class Alpaca(FEPortfolio):
 
                         if this_asset in self.sell_info.keys():
                             new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
-                            sell_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
+                            sell_order_name = datetime.today().strftime('%Y-%m-%d-%H')+this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
                         else:
                             new_sell_price = float(avg_buy_price) * 1.01
-                            sell_order_name = datetime.today().strftime('%Y-%m-%d')+this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
+                            sell_order_name = datetime.today().strftime('%Y-%m-%d-%H')+this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
                                 '%Y-%m-%d')
 
                         # new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
