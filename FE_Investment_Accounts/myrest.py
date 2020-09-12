@@ -29,3 +29,22 @@ class MyRest(REST):
             params['extended_hours'] = extended_hours
         resp = self.post('/orders', params)
         return Order(resp)
+
+    def submit_order_trailing(self, symbol, qty, side, time_in_force, trail_percent, client_order_id=None,
+                     extended_hours=None):
+        '''Request a new order'''
+        params = {
+            'symbol': symbol,
+            'qty': qty,
+            'side': side,
+            'type': "trailing_stop",
+            'time_in_force': time_in_force,
+            'trail_percent': trail_percent
+        }
+
+        if client_order_id is not None:
+            params['client_order_id'] = client_order_id
+        if extended_hours is not None:
+            params['extended_hours'] = extended_hours
+        resp = self.post('/orders', params)
+        return Order(resp)

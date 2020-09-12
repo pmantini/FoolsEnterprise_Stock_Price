@@ -34,7 +34,7 @@ class Alpaca(FEPortfolio):
     def __init__(self, args):
         self.name = self.__class__.__name__
         self.req_args = ['strategy', 'live', 'liquidateifcannotsell']
-        self.opt_args = ['output_dir']
+        self.opt_args = ['output_dir', 'actions']
         FEPortfolio.__init__(self, self.name, self.req_args, self.opt_args)
 
         self.current_state = None
@@ -91,6 +91,8 @@ class Alpaca(FEPortfolio):
         self.sell_info_file = os.path.join(os.path.join(self.portfolio_output_dir, self.name), self.sell_info_file)
 
         self.avoid_exchange = ["ARCA"]
+
+        self.actions = args["actions"] if "actions" in args.keys() else "all"
 
         try:
             self.sell_info = self.load_model(self.sell_info_file)
@@ -159,10 +161,10 @@ class Alpaca(FEPortfolio):
 
             if k[1] in self.list_of_orders.keys():
                 if self.list_of_orders[k[1]].side == "buy" and self.list_of_orders[k[1]].type == "limit":
-                    self.current_state[k[0]] = self.stock_position["b"]
+                        self.current_state[k[0]] = self.stock_position["b"]
 
                 elif self.list_of_orders[k[1]].side == "sell" and self.list_of_orders[k[1]].type == "limit":
-                    self.current_state[k[0]] = self.stock_position["s"]
+                        self.current_state[k[0]] = self.stock_position["s"]
 
             elif k[1] in list_of_positions.keys():
                 self.current_state[k[0]] = self.stock_position["h"]
@@ -318,7 +320,10 @@ class Alpaca(FEPortfolio):
 
 
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
-
+                    print("limit buy: ", this_asset)
+                    if self.actions not in ["all", "buy"]:
+                        print("skipping: actions =  %s" % self.actions)
+                        continue
                     #to avoid investing in ARCA
                     try:
                         if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
@@ -340,6 +345,10 @@ class Alpaca(FEPortfolio):
 
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_sell":
                     print("limit sell: ", this_asset)
+                    if self.actions not in ["all", "sell"]:
+                        print("skipping: actions =  %s" % self.actions)
+                        continue
+
                     try:
 
                         avg_buy_price = self.investment_ac.get_position(this_asset).avg_entry_price

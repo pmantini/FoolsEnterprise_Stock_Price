@@ -2038,20 +2038,62 @@ class markov_o2_c3_w(FEModel):
         self.save_model(transision_matrix)
         return
 
+    def get_prices_eval(self, column1="high"):
+
+        company_list = self.db.get_list_companies()
+        total_companies = self.db.get_companies_count()
+
+        max_items = self.db.get_max_rows()
+
+        values1 = np.zeros((total_companies, max_items))
+        i = 0
+        dates_array = None
+        for k in company_list:
+            values_fetch1, dates = self.db.get_values_company(company_sym=k, columns=column1)
+            values1[i, max_items - len(values_fetch1):max_items] = values_fetch1
+            if i == 0:
+                this_dates_array = ["-"]*max_items
+                # this_dates_array[:len(dates)] = ""
+                this_dates_array[max_items - len(dates):max_items] = dates
+
+                dates_array = this_dates_array
+
+            i += 1
+
+        total_samples_avail = max_items
+
+        train_samples1 = values1[:, -self.days_to_eval//7*7:]
+        dates_samples = dates_array[-self.days_to_eval//7*7:]
+
+        return train_samples1, dates_samples
+
     def do_eval(self):
         #### Computes overall average accuracy, per stock accuracy
         # evaluation
 
         transision_matrix = self.load_model()
         print("Generating Eval Data")
-        eval_data, dates, prices_close = self.generate_eval_data(column="high")
+        eval_data, dates, _ = self.generate_eval_data(column="high")
+        prices_close, _ = self.get_prices_eval(column1="close")
+        prices_low, daily_dates = self.get_prices_eval(column1="low")
+        prices_high, _ = self.get_prices_eval(column1="high")
 
-        _, _, prices_low = self.generate_eval_data(column="low", stats="min")
-        _, _, prices_high = self.generate_eval_data(column="high")
 
         _, _, prices_c = self.generate_eval_data(column="close", stats="last")
         print("Generating Eval Data: Done")
-        eval_data = eval_data[:,1:]
+        eval_data = eval_data[:, 1:]
+        dates = dates[1:]
+        start_index = 0
+        for k in range(len(daily_dates)):
+            if daily_dates[k] >= dates[0]:
+                start_index = k
+                break
+
+        daily_dates = daily_dates[start_index:]
+        prices_low = prices_low[:, start_index:]
+        prices_high = prices_high[:, start_index:]
+        prices_close = prices_close[:, start_index:]
+
 
         eval_classes = self.get_class(eval_data)
 
@@ -2110,7 +2152,9 @@ class markov_o2_c3_w(FEModel):
                             "close": prices_c[eval_iter],
                             "high": prices_high[eval_iter],
                             "low": prices_low[eval_iter],
-                            "dates": dates}
+                            "close_daily": prices_close[eval_iter],
+                            "dates": dates,
+                            "daily_dates": daily_dates}
 
 
             confidence += [output[comp]["accuracy"]]

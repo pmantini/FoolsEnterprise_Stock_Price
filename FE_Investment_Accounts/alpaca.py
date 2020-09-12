@@ -84,7 +84,7 @@ class FE_Alpaca:
         else:
             return self.alpaca.submit_order(sym, qty, side, type, time_in_force="gtc", limit_price=limit, client_order_id=id)
 
-    def order_OCO(self, sym, qty, side, limit_p, stop_loss, limit_l, id, type="limit", ):
+    def order_OCO(self, sym, qty, side, limit_p, stop_loss, limit_l, id, type="limit"):
         if not self.is_asset_active(sym):
             print("Asset %s not active" % sym)
             raise Exception("Asset %s not active" % sym)
@@ -94,6 +94,16 @@ class FE_Alpaca:
         else:
             return self.alpaca.submit_order_oco(sym, qty, side, type, time_in_force="gtc", limit_price_p=limit_p, stop_price=stop_loss,
                                                 limit_price_l=limit_l, client_order_id=id)
+
+    def order_Trailing(self, sym, qty, side, id, trail_percent):
+        if not self.is_asset_active(sym):
+            print("Asset %s not active" % sym)
+            raise Exception("Asset %s not active" % sym)
+        elif not self.is_asset_tradable(sym):
+            print("Asset %s not tradable" % sym)
+            raise Exception("Asset %s not tradable" % sym)
+        else:
+            return self.alpaca.submit_order_trailing(sym, qty, side, time_in_force="gtc", trail_percent=trail_percent, client_order_id=id)
 
 
     def cancel_order(self, id):
