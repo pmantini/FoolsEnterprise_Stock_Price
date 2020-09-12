@@ -161,10 +161,10 @@ class Alpaca(FEPortfolio):
 
             if k[1] in self.list_of_orders.keys():
                 if self.list_of_orders[k[1]].side == "buy" and self.list_of_orders[k[1]].type == "limit":
-                        self.current_state[k[0]] = self.stock_position["b"]
+                    self.current_state[k[0]] = self.stock_position["b"]
 
                 elif self.list_of_orders[k[1]].side == "sell" and self.list_of_orders[k[1]].type == "limit":
-                        self.current_state[k[0]] = self.stock_position["s"]
+                    self.current_state[k[0]] = self.stock_position["s"]
 
             elif k[1] in list_of_positions.keys():
                 self.current_state[k[0]] = self.stock_position["h"]
