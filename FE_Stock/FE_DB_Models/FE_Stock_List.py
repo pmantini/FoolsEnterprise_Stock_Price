@@ -8,6 +8,7 @@ import os
 class FE_Stock_List:
 
     def __init__(self):
+
         db_name = os.path.join(database_folder, db_stock_list)
         self.db = sqlite3.connect(db_name)
         self.table_name = None
@@ -41,6 +42,8 @@ class FE_Stock_List:
     def close(self):
         self.db.commit()
         self.db.close()
+
+
 
 
 

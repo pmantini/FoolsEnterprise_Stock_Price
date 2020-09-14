@@ -73,47 +73,50 @@ class app_update:
 
         fe_quandl = FE_Quandl(quandl_api_key_file)
 
-        for stock in list_of_stock:
-            print("Updating %s", stock[0])
+        for counter, stock in enumerate(list_of_stock):
+            print("%s/%s: Updating %s" % (counter, len(list_of_stock), stock[0]))
             stock_sym = stock[0]
             fe_stock = FE_Stock(stock_sym, table_name)
             fe_stock.init()
 
-            #check if stock exists in quandl
-            try:
-                data = fe_quandl.get(stock_sym)
-            except:
-                print("%s Not found; deleteing from list" % stock_sym)
-                fe_stock_list = FE_Stock_List()
-                fe_stock_list.init(table_name)
-                fe_stock_list.delete_stock(stock_sym)
-                fe_stock_list.close()
-                continue
+            # #check if stock exists in quandl
+            # try:
+            #     data = fe_quandl.get(stock_sym)
+            # except:
+            #     print("%s Not found; deleteing from list" % stock_sym)
+            #     fe_stock_list = FE_Stock_List()
+            #     fe_stock_list.init(table_name)
+            #     fe_stock_list.delete_stock(stock_sym)
+            #     fe_stock_list.close()
+            #     continue
 
             last_date = fe_stock.get_last_date()
 
             if is_update_required(last_date):
                 if not len(last_date):
                     print(last_date)
-                    print("No data availabel for %s", stock_sym)
+                    print("No data available for %s" % stock_sym)
                     try:
                         data = fe_quandl.get(stock_sym)
                     except:
-                        print("%s Not found; deleteing from list", stock_sym)
+                        print("%s Not found; deleteing from list" % stock_sym)
                         fe_stock_list = FE_Stock_List()
                         fe_stock_list.init(table_name)
                         fe_stock_list.delete_stock(stock_sym)
                         fe_stock_list.close()
+                        fe_stock.del_db()
+                        continue
                 else:
                     try:
                         data = fe_quandl.filter(stock_sym, last_date)
                     except:
-
-                        print("%s Not found; deleteing from list", stock_sym)
+                        print("%s Not found; deleteing from list" % stock_sym)
                         fe_stock_list = FE_Stock_List()
                         fe_stock_list.init(table_name)
                         fe_stock_list.delete_stock(stock_sym)
                         fe_stock_list.close()
+                        fe_stock.del_db()
+                        continue
 
                 for ind in data.index:
                     stock_row = {"date": str(ind).split(" ")[0]}

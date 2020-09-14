@@ -14,6 +14,7 @@ class FE_Stock:
         self.fe_stock_list.close()
 
         db_name = os.path.join(database_folder, self.stock_db)
+        self.location = db_name
         self.db = sqlite3.connect(db_name)
         self.table_name = "data"
         self.cursor = self.db.cursor()
@@ -89,3 +90,7 @@ class FE_Stock:
         self.db.commit()
         self.db.close()
 
+
+    def del_db(self):
+        print("deleting db %s" % self.location)
+        os.remove(self.location)
