@@ -57,8 +57,16 @@ class app_setup:
             print(k[0], table_name)
             fe_stock = FE_Stock(k[0], table_name)
             fe_stock.init()
+            try:
+                data = fe_quandl.get(k[0])
+            except:
+                print("%s Not found; deleteing from list" % k[0])
+                fe_stock_list = FE_Stock_List()
+                fe_stock_list.init(table_name)
+                fe_stock_list.delete_stock(k[0])
+                fe_stock_list.close()
+                continue
 
-            data = fe_quandl.get(k[0])
             for ind in data.index:
                 stock_row = {"date": str(ind).split(" ")[0]}
                 stock_row["open"] = data.loc[ind]['Open']

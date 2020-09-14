@@ -72,11 +72,23 @@ class app_update:
         fe_stock_list.close()
 
         fe_quandl = FE_Quandl(quandl_api_key_file)
+
         for stock in list_of_stock:
             print("Updating %s", stock[0])
             stock_sym = stock[0]
             fe_stock = FE_Stock(stock_sym, table_name)
             fe_stock.init()
+
+            #check if stock exists in quandl
+            try:
+                data = fe_quandl.get(stock_sym)
+            except:
+                print("%s Not found; deleteing from list" % stock_sym)
+                fe_stock_list = FE_Stock_List()
+                fe_stock_list.init(table_name)
+                fe_stock_list.delete_stock(stock_sym)
+                fe_stock_list.close()
+                continue
 
             last_date = fe_stock.get_last_date()
 
