@@ -1877,9 +1877,14 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
 
         self.company_list = self.db.get_list_companies()
 
+        print("Fetching train data 1")
         # get prices
         close_prices = self.generate_train_data(column1="close")
+
+        print("Fetching train data 2")
         low_prices = self.generate_train_data(column1="close", column2="low")
+
+        print("Fetching train data 3")
         high_prices = self.generate_train_data(column1="close", column2="high")
 
 
@@ -1894,7 +1899,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
 
         differnece_when_decreased[indices_when_stock_decreased == 1] = low_prices[indices_when_stock_decreased == 1]
         differnece_when_increased[indices_when_stock_increased == 1] = high_prices[indices_when_stock_increased == 1]
-
+        print("Computing Gaussian Paramas")
         for k,j in zip(differnece_when_decreased,differnece_when_increased):
 
             decrease, increase = k[k != 0], j[j != 0]
@@ -1918,9 +1923,12 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
             # plt.show()
 
             if len(decrease) and len(increase):
-
-                self.gaussian_parameters_delta += [{"decrease": [np.mean(decrease), np.std(decrease)],
-                                                    "increase": [np.mean(increase), np.std(increase)]}]
+                if np.mean(decrease) < 0 and np.mean(increase) > 0:
+                    self.gaussian_parameters_delta += [{"decrease": [np.mean(decrease), np.std(decrease)],
+                                                        "increase": [np.mean(increase), np.std(increase)]}]
+                else:
+                    self.gaussian_parameters_delta += [{"decrease": [0, 0],
+                                                        "increase": [0, 0]}]
             else:
                 self.gaussian_parameters_delta += [{"decrease": [0,0],
                                                     "increase": [0,0]}]
@@ -1974,6 +1982,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
 
         i = 0
         for k in company_list:
+            print("Get Price: Fetching data from db: processed - %s/%s" % (i, len(company_list)))
             values_fetch1, _ = self.db.get_values_company(company_sym=k, columns=column1)
             values1[i, max_items - len(values_fetch1):max_items] = values_fetch1
 
@@ -1998,8 +2007,10 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
         values1 = np.zeros((total_companies, max_items))
         values2 = np.zeros((total_companies, max_items))
 
+
         i = 0
         for k in company_list:
+            print("Train: Fetching data from db: processed - %s/%s" % (i, len(company_list)))
             values_fetch1, _ = self.db.get_values_company(company_sym=k, columns=column1)
             values1[i, max_items - len(values_fetch1):max_items] = values_fetch1
 
@@ -2142,7 +2153,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
                 temp_high_price[self.company_list.index(k)] = eval_data[k]["high"][day-1]
 
 
-            stocks, qunts, buy_price, sell_price, sell_ratio = self.generate_actions(temp_predict_data, np.array(temp_close_price), np.array(temp_high_price),
+            stocks, qunts, buy_price, sell_price, sell_ratio, buy_ratio = self.generate_actions(temp_predict_data, np.array(temp_close_price), np.array(temp_high_price),
                                                                                      resource=self.resource, number_of_stocks=self.number_of_stocks, dropout = self.dropout)
 
             total = 0
@@ -2199,6 +2210,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
 
         i = 0
         for k in company_list:
+            print("Pred: Fetching data from db: %s/%s" % (i, len(company_list)))
             if i == 0:
                 _, dates_fetch = self.db.get_values_company(company_sym=k)
             values_fetch, _ = self.db.get_values_company(company_sym=k, columns=column)
@@ -2225,7 +2237,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
     def generate_actions(self, pred_data, close_prices, high_prices, resource, number_of_stocks, dropout = 0.25):
 
         list_possible = []
-
+        print("Identifying potential stocks")
         for k in pred_data:
             # if pred_data[k]["prediction"][0] == 0 and pred_data[k]["prediction"][1] ==  2:
             #     list_possible += [k]
@@ -2239,9 +2251,9 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
         drop = np.zeros(len(self.company_list))
         pop = np.zeros(len(self.company_list))
 
-
+        print("Print Computing Temp drop, pop")
         for i in range(len(self.company_list)):
-
+            # print ("Temp drop/pop: Processed %s/%s" % (i, len(self.company_list)))
             while True:
                 if self.gaussian_parameters_delta[i]["decrease"][0] and self.gaussian_parameters_delta[i]["decrease"][1]:
                     tempdrop = np.random.normal(self.gaussian_parameters_delta[i]["decrease"][0],
@@ -2251,9 +2263,13 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
                     break
                 #tempdrop = self.gaussian_parameters_delta[i]["decrease"][0]
                 if tempdrop < 0 and tempdrop >= self.gaussian_parameters_delta[i]["decrease"][0]:
-                    break;
+                    break
 
+                # print (tempdrop, self.gaussian_parameters_delta[i]["decrease"][0],
+                #        self.gaussian_parameters_delta[i]["decrease"][1])
             while True:
+
+
                 if self.gaussian_parameters_delta[i]["increase"][0] and self.gaussian_parameters_delta[i]["increase"][1]:
                     temppop = np.random.normal(self.gaussian_parameters_delta[i]["increase"][0],
                                                self.gaussian_parameters_delta[i]["increase"][1])
@@ -2263,8 +2279,8 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
                 # temppop = self.gaussian_parameters_delta[i]["increase"][0]
 
                 if temppop > 0 and temppop < self.gaussian_parameters_delta[i]["increase"][0]:
-                    break;
-
+                    break
+                # print (temppop, self.gaussian_parameters_delta[i]["increase"][0], self.gaussian_parameters_delta[i]["increase"][1])
 
             drop[i] = tempdrop
             pop[i] = temppop
@@ -2275,7 +2291,7 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
             else:
                 predictions[i] = 0
 
-
+        print("Computing Random Selections")
         optimizer = Optimize()
         stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), high_prices, resource=resource, number_of_stocks=number_of_stocks, dropout = dropout)
 
@@ -2296,11 +2312,15 @@ class RandomSelectionForTwoTimeStepWeeklyThreeClassPredicitonDownUp(FEStrategy):
 
     def do_action(self):
 
+        print("Entered do actions")
         # load pred file
         pred_data = self.load_model(self.pred_file)
+        print("Generating Pred data")
         _, dates, close_prices = self.generate_pred_data(column="close")
+        print("Generating High data")
         high_price = self.get_prices(column1="high")
 
+        print("Generating Actions")
         stocks, qunts, buy_price, sell_price, sell_ratio, buy_ratio = self.generate_actions(pred_data, close_prices, high_price,
                                                                                  resource=self.resource, number_of_stocks=self.number_of_stocks, dropout=self.dropout)
 

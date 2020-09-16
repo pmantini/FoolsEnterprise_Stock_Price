@@ -1815,20 +1815,25 @@ class markov_o2_c3_w(FEModel):
         total_companies = self.db.get_companies_count()
 
         # max_items = self.db.get_max_rows()
+
         max_items = 0
         values_array, dates_array = [], []
-        for k in company_list:
+        i = 0
+        for ind, k in enumerate(company_list):
+            print("Fetching Data from DB: Processing - %s/%s" % (i, len(company_list)))
             v_temp, d_temp = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
             values_array += [v_temp]
             dates_array += [d_temp]
-
+            i+=1
             # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
         for k in dates_array:
             if max_items < len(k):
                 max_items = len(k)
 
-        # i = 0
+
+        i = 0
         for i in range(len(company_list)):
+            print("Orgnaizing Data: Processing - %s/%s" % (i, len(company_list)))
             if i == 0:
                 # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
                 #max_items = len(dates_fetch)
@@ -1836,7 +1841,7 @@ class markov_o2_c3_w(FEModel):
             # values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
             values_fetch = values_array[i]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
-            # i += 1
+            i += 1
 
 
         total_samples_avail  = max_items
@@ -1942,13 +1947,15 @@ class markov_o2_c3_w(FEModel):
         #     values_fetch = values_fetch[:-1]
         #     values[i, max_items - len(values_fetch):max_items] = values_fetch
         #     i += 1
-
+        i  = 0
         max_items = 0
         values_array, dates_array = [], []
         for k in company_list:
+            print("Fetching data - processing: %s/%s" % (i, len(company_list)))
             v_temp, d_temp = self.db.get_weekly_stats_company(company_sym=k, columns=column)
             values_array += [v_temp]
             dates_array += [d_temp]
+            i+=1
 
             # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
         for k in dates_array:
@@ -1957,13 +1964,15 @@ class markov_o2_c3_w(FEModel):
 
         # i = 0
         for i in range(len(company_list)):
+            print("Orgnanizing data - processing: %s/%s" % (i, len(company_list)))
             if i == 0:
                 # _, dates_fetch = self.db.get_weekly_stats_company(company_sym=k, stats=stats)
                 # max_items = len(dates_fetch)
                 values = np.zeros((total_companies, max_items))
             # values_fetch, _ = self.db.get_weekly_stats_company(company_sym=k, columns=column, stats=stats)
-            values_fetch = values_array[i][:-1]
+            values_fetch = values_array[i]
             values[i, max_items - len(values_fetch):max_items] = values_fetch
+            # i+=1
 
         dates = dates_array[0][-2:]
         prices = values[:, -2:]
@@ -2007,6 +2016,7 @@ class markov_o2_c3_w(FEModel):
         for stock in matclasses:
 
             two_days_classes = [(1 + len(labels)) * i + j for i, j in zip(stock[:-1], stock[1:])]
+
             matclasses2[k] = two_days_classes
             k += 1
 
@@ -2180,14 +2190,21 @@ class markov_o2_c3_w(FEModel):
 
 
     def predict_next_state(self, initial_state, transision_matrix):
-
-        this_trans = transision_matrix
+        this_trans = np.copy(transision_matrix)
+        # print("This_trans", transision_matrix)
+        # this_trans = transision_matrix
+        # print("sum, This_trans", this_trans.sum(axis=1).reshape(-1, 1))
         this_trans /= this_trans.sum(axis=1).reshape(-1, 1)
+        this_trans[np.isnan(this_trans)] = 0
+        # print("Normalize", this_trans)
         trans_cumsum = np.cumsum(this_trans, axis=1)
+        # print("Cumsum", trans_cumsum)
         randomvalue = np.random.random()
         class_iter = 0
 
-
+        if np.sum(trans_cumsum[initial_state]) == 0:
+            print("Not transision possible, inital state: ", initial_state)
+            return initial_state
         for pty in trans_cumsum[initial_state]:
             if randomvalue < pty:
                 break
@@ -2265,7 +2282,7 @@ class markov_o2_c3_w(FEModel):
             predict_date = last_date + datetime.timedelta(days=7*(t+1))
 
             for pred_element in pred_classes:
-
+                # print(t, pred_element)
                 comp = company_list[i]
                 if comp not in pred_pred.keys():
                     pred_pred[comp] = {"date": [str(predict_date).split(" ")[0]]}
