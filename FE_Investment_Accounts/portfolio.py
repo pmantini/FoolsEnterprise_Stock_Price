@@ -318,26 +318,44 @@ class Alpaca(FEPortfolio):
                     print("Already holding %s, passing limit_buy order" % this_asset)
                     pass
 
-
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
                     print("limit buy: ", this_asset)
                     if self.actions not in ["all", "buy"]:
-                        print("skipping: actions =  %s" % self.actions)
+                        print("skipping buy: actions =  %s" % self.actions)
+                        print("-------------------------------")
                         continue
                     #to avoid investing in ARCA
                     try:
                         if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
                             print("Skipping %s, because it belongs to exchnage %s" % (this_asset, self.investment_ac.get_asset(this_asset).exchange))
+                            print("-------------------------------")
                             continue
 
 
                         buy_order_name = datetime.today().strftime('%Y-%m-%d-%H')+this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
                         # buy_order_name = this_asset + "___" + (datetime.today() - timedelta(days=2)).strftime(
                         #     '%Y-%m-%d')
-                        order_resp = self.investment_ac.order(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
-                                                              "buy", self.strategy_actions[this_asset]["buy"][0], buy_order_name)
+                        # order_resp = self.investment_ac.order(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
+                        #                                       "buy", self.strategy_actions[this_asset]["buy"][0], buy_order_name)
 
-                        print(order_resp)
+                        current_price = self.investment_ac.get_last_price(this_asset)
+                        print("Current price: %s, Buy price: %s" % (current_price, self.strategy_actions[this_asset]["buy"][0]))
+
+                        if current_price <= self.strategy_actions[this_asset]["buy"][0]:
+                            print("place order with 0.99 trailing percent")
+                            order_resp = self.investment_ac.order_Trailing(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
+                                            "buy", buy_order_name, trail_percent=0.99)
+                            print(order_resp)
+                        else:
+                            print("Skipping buy order as %s > %s" % (current_price, self.strategy_actions[this_asset]["buy"][0]))
+                            pass
+                        # elif self.strategy_actions[this_asset]["buy_ratio"] * current_price <=  self.strategy_actions[this_asset]["buy"][0]:
+                        #     print("place order with %s trailing percent" % self.strategy_actions[this_asset]["buy_ratio"])
+                        #     order_resp = self.investment_ac.order_Trailing(this_asset, int(
+                        #         self.strategy_actions[this_asset]["quantity"]),
+                        #                                                    "buy", buy_order_name, trail_percent=self.strategy_actions[this_asset]["buy_ratio"])
+
+
                     except:
                         print("Unexpected error:", sys.exc_info())
                         print("Failed to buy: ", this_asset)
@@ -346,7 +364,8 @@ class Alpaca(FEPortfolio):
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_sell":
                     print("limit sell: ", this_asset)
                     if self.actions not in ["all", "sell"]:
-                        print("skipping: actions =  %s" % self.actions)
+                        print("skipping sell: actions =  %s" % self.actions)
+                        print("-------------------------------")
                         continue
 
                     try:
@@ -385,6 +404,7 @@ class Alpaca(FEPortfolio):
                         print("Canceling order %s, %s" % (order_id, this_asset))
                         self.investment_ac.cancel_order(order_id)
 
+                print("-------------------------------")
                 # if self.stock_position_name[self.desired_state[k[0]]] == "limit_sell" and \
                 #         self.stock_position_name[self.current_state[k[0]]] == "liquidate":
                 #         order_id = self.list_of_orders[this_asset].id

@@ -116,6 +116,10 @@ class FE_Alpaca:
         self.alpaca.replace_order(order_id, qty=qty, limit_price=limit_price)
 
 
+    def get_last_price(self, sym):
+        last_quote = self.alpaca.get_last_quote(sym)
+        return (last_quote.askprice + last_quote.bidprice)/2
+
     def read_file(self, file):
         f = open(file, "r")
         if f.mode == 'r':
