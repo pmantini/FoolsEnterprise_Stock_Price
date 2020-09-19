@@ -1,4 +1,4 @@
-import argparse
+import argparse, sys
 import json
 import inspect
 
@@ -7,17 +7,6 @@ from FE_Models import models
 from setup import log_file
 
 import logging
-
-logging.basicConfig(filename=log_file, format='%(filename)s:%(lineno)s %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-
-logger = logging.getLogger('main')
-logger.setLevel(logging.DEBUG)
-
-fh = logging.FileHandler(log_file)
-
-formatter = logging.Formatter('%(filename)s:%(lineno)s %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-fh.setFormatter(formatter)
-
 
 def get_classes_in_module(modulename):
     classes = dir(modulename)
@@ -50,19 +39,40 @@ if __name__ == '__main__':
         type=json.loads,
         help='A dictinary of arguments',
         default={})
+    parser.add_argument(
+        '-dev',
+        '--development',
+        type=bool,
+        help='if development is true logs are writted to stdout',
+        default=False)
 
     args = parser.parse_args()
 
-    #Get list of models
+    if args.development:
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(filename)s:%(lineno)s %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+        handler.setFormatter(formatter)
+        root.addHandler(handler)
+
+    else:
+        logging.basicConfig(filename=log_file, format='%(filename)s:%(lineno)s %(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+        logger = logging.getLogger('main')
+        logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler(log_file)
+
+    # Get list of models
     list_models = get_classes_in_module(models)
 
-    #Check if the model exists
+    # Check if the model exists
     if args.model not in list_models:
         logging.error("Model %s is invalied" , args.model)
         logging.error("Available Models: %s, EXITING!", str(list_models))
         exit()
 
-    #pick the model from args
+    # Pick the model from args
     for name, obj in inspect.getmembers(models):
         if inspect.isclass(obj):
             if name == args.model:
@@ -71,10 +81,10 @@ if __name__ == '__main__':
 
     model_obj = model(args)
 
-    #Get list of arguments
+    # Get list of arguments
     model_arg_available = model_obj.get_args()
 
-    #Check if requireguments are avaialble
+    # Check if requireguments are avaialble
     required_args_check_pass = True
     for arg in model_arg_available["required"]:
         if arg not in args.model_arg.keys():
@@ -85,11 +95,10 @@ if __name__ == '__main__':
         logging.error("Required arguments check failed, Exiting")
         exit()
 
-    #Warn if optional args do not match
+    # Warn if optional args do not match
     for argument in args.model_arg.keys():
         if argument not in model_arg_available["required"] and argument not in model_arg_available["optional"]:
             logging.warning("%s is a not a valid optional arguement", argument)
-
 
     if args.task == "train":
         logging.info("Begin_training")

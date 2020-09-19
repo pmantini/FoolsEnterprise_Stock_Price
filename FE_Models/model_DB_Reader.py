@@ -22,7 +22,7 @@ class DB_Ops:
         self.comp_list = [k[0] for k in self.company_list]
 
         self.db_folder = database_folder
-
+        logging.info("Total stocks: %s" % len(self.company_list) )
         max_value = 0
         for k in self.comp_list:
             values_list,_ = self.get_values_company(k)

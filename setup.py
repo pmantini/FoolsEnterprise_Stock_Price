@@ -16,7 +16,5 @@ table_name = "data"
 
 start_date = "2005-01-01"
 
-
-
 #FE_Models
 log_file = "FE_Models_Log.log"
