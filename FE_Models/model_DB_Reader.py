@@ -1,6 +1,6 @@
 import sqlite3
 import pandas as pd
-
+import numpy as np
 from setup import log_file, database_folder, table_name, start_date
 from FE_Stock.FE_DB_Models.FE_Stock_List import FE_Stock_List
 from FE_Stock.FE_DB_Models.FE_Stock import FE_Stock
@@ -135,6 +135,8 @@ class DB_Ops:
             return [max(k) for k in values_sorted], [str(k[-1]).split(" ")[0] for k in dates_sorted]
         elif stats == "min":
             return [min(k) for k in values_sorted], [str(k[-1]) for k in dates_sorted]
+        elif stats == "mean":
+            return [np.mean(k) for k in values_sorted], [str(k[-1]) for k in dates_sorted]
         elif stats == "last":
             return [k[-1] for k in values_sorted], [str(k[-1]) for k in dates_sorted]
         else:
