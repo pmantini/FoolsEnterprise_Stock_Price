@@ -25,7 +25,7 @@ class HubberRegressionDaily(FEMetrics):
     def __init__(self, args):
         self.name = self.__class__.__name__
         self.req_args = []
-        self.opt_args = ['ouput_dir', "days_to_eval", "model_dir", 'pred_dir']
+        self.opt_args = ['ouput_dir', "days_to_eval", "model_dir", 'metric_dir' ]
         FEMetrics.__init__(self, self.name, self.req_args, self.opt_args)
 
         self.company_list = None
@@ -50,11 +50,12 @@ class HubberRegressionDaily(FEMetrics):
 
         self.model_dir = args["model_dir"] if "model_dir" in args.keys() else self.output_dir+"training_dir/"+self.name+"/"
         self.eval_dir = args["eval_dir"] if "eval_dir" in args.keys() else self.output_dir+"eval_dir/"+self.name+"/"
-        self.pred_dir = args["pred_dir"] if "pred_dir" in args.keys() else self.output_dir + "pred_dir/" + self.name + "/"
+        # self.pred_dir = args["pred_dir"] if "pred_dir" in args.keys() else self.output_dir + "pred_dir/" + self.name + "/"
+        self.metric_dir = args[
+            "metric_dir"] if "metric_dir" in args.keys() else self.output_dir + "metric_dir/" + self.name + "/"
 
-        self.model_file = os.path.join(os.path.dirname(self.model_dir), "model.npy")
         self.eval_file = os.path.join(os.path.dirname(self.eval_dir), "eval.json")
-        self.pred_file = os.path.join(os.path.dirname(self.pred_dir), "pred.json")
+        self.metric_file = os.path.join(os.path.dirname(self.metric_dir), "metric.json")
 
         self.days_to_eval = args["days_to_eval"] if "days_to_eval" in args.keys() else 30
         self.weeks_to_eval = args["weeks_to_eval"] if "weeks_to_eval" in args.keys() else 8
@@ -125,14 +126,14 @@ class HubberRegressionDaily(FEMetrics):
 
     def save_model(self, transition_matrix):
         try:
-            os.makedirs(self.model_dir)
+            os.makedirs(self.metric_dir)
         except OSError:
             logging.warning("Creation of the directory %s failed" % self.model_dir)
         else:
             logging.info("Successfully created the directory %s " % self.model_dir)
 
-        np.save(self.model_file, transition_matrix)
-        logging.info("Saving transition matrix to %s", self.model_file)
+        np.save(self.metric_file, transition_matrix)
+        logging.info("Saving metrics to %s", self.metric_file)
 
     def load_model(self):
         return np.load(self.model_file)
@@ -157,17 +158,17 @@ class HubberRegressionDaily(FEMetrics):
             if y.shape[0] > 100:
                 model.fit(x, y)
 
-                reg_data += [[model.coef_[0], model.scale_, train_data_changes[ind, -1]]]
+                reg_data += [[model.coef_[0], model.scale_]]
 
             else:
                 logging.info("--------------- %s unreliable, < 100 days of data available -------------" % ind)
-                reg_data += [[-100, 0, -100]]
+                reg_data += [[-100, 0]]
 
             logging.info("Prameters for %s = %s" % (ind, reg_data[-1]))
 
         logging.info("Training: Done")
 
-        self.save_model(reg_data)
+        self.save_metric_output(reg_data)
         return
 
     def save_eval_output(self, data):
@@ -184,21 +185,38 @@ class HubberRegressionDaily(FEMetrics):
             pickle.dump(data, outfile)
         outfile.close()
 
+    def save_metric_output(self, data):
+        try:
+            os.makedirs(self.metric_dir)
+        except OSError:
+            logging.warning("Creation of the directory %s failed" % self.metric_dir)
+        else:
+            logging.info("Successfully created the directory %s " % self.metric_dir)
+
+        logging.info("Writing metric to %s", self.eval_file)
+
+        with open(self.metric_file, 'wb') as outfile:
+            pickle.dump(data, outfile)
+        outfile.close()
+
     def do_eval(self):
         changes_all, actual_all, dates = self.generate_eval_data("high")
 
         from sklearn.linear_model import HuberRegressor
         eval_data = dict()
+
         for day in range(self.days_to_eval):
-            logging.info("Computing for day %s" % day)
+            logging.info("Computing for day %s" % (day))
             days_behind = self.days_to_eval - day
+
             dates_actual = dates[:, :-days_behind]
             data_actual = actual_all[:, :-days_behind]
-            data_change = changes_all[:, :-days_behind]
+            # data_change = changes_all[:, :-days_behind]
 
-            reg_data, reg_data_2 = [], []
+            reg_data, dates_of_pred = [], []
 
             for ind, k in enumerate(data_actual):
+                dates_of_pred += [dates_actual[ind, -1]]
                 k = np.trim_zeros(k)
 
                 model = HuberRegressor()
@@ -209,15 +227,15 @@ class HubberRegressionDaily(FEMetrics):
                 if y.shape[0] > 100:
                     model.fit(x, y)
 
-                    reg_data += [[model.coef_[0], model.scale_, data_change[ind, -1]]]
+                    reg_data += [[model.coef_[0], model.scale_]]
 
                 else:
-                    reg_data += [[-100, 0, -100]]
+                    reg_data += [[-100, 0]]
 
             reg_data = np.array(reg_data)
+            dates_of_pred = np.array(dates_of_pred)
 
-            eval_data[dates_actual[0, -1]] = reg_data
-
+            eval_data[day] = {"metric": reg_data, "dates": dates_of_pred}
 
         self.save_eval_output(eval_data)
 
