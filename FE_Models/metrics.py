@@ -158,11 +158,11 @@ class HubberRegressionDaily(FEMetrics):
             if y.shape[0] > 100:
                 model.fit(x, y)
 
-                reg_data += [[model.coef_[0], model.scale_]]
+                reg_data += [[model.coef_[0], model.scale_, model.intercept_]]
 
             else:
                 logging.info("--------------- %s unreliable, < 100 days of data available -------------" % ind)
-                reg_data += [[-100, 0]]
+                reg_data += [[-100, 0, 0]]
 
             logging.info("Prameters for %s = %s" % (ind, reg_data[-1]))
 
@@ -227,10 +227,10 @@ class HubberRegressionDaily(FEMetrics):
                 if y.shape[0] > 100:
                     model.fit(x, y)
 
-                    reg_data += [[model.coef_[0], model.scale_]]
+                    reg_data += [[model.coef_[0], model.scale_, model.intercept_]]
 
                 else:
-                    reg_data += [[-100, 0]]
+                    reg_data += [[-100, 0, 0]]
 
             reg_data = np.array(reg_data)
             dates_of_pred = np.array(dates_of_pred)

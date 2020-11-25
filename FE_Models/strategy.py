@@ -6,6 +6,7 @@ from FE_Models.model_DB_Reader import DB_Ops
 from FE_Models.optimize import Optimize
 import json
 from setup import mount_folder
+import datetime
 # import matplotlib.pyplot as plt
 from scipy import stats
 
@@ -91,6 +92,7 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
         self.pred_file = [os.path.join(os.path.dirname(k), "pred.json") for k in self.pred_dir]
 
         self.pred_metric_file = os.path.join(os.path.dirname(self.pred_metric_dir), "metric.json")
+        self.eval_metric_file = os.path.join(os.path.dirname(self.eval_metric_dir), "eval.json")
 
         self.strategy_eval_file = os.path.join(os.path.dirname(self.eval_strategy_dir), "eval.json")
         self.strategy_pred_file = os.path.join(os.path.dirname(self.pred_strategy_dir), "pred.json")
@@ -126,13 +128,6 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
         for k,j in zip(differnece_when_decreased,differnece_when_increased):
 
             decrease, increase = k[k != 0], j[j != 0]
-
-            # try:
-            #     decrease[decrease <= np.mean(decrease) - 5 * np.std(decrease)] = stats.mode(decrease).mode
-            #     increase[increase >= np.mean(increase) + 5*np.std(increase)] = stats.mode(increase).mode
-            # except:
-            #     decrease[decrease <= np.mean(decrease) - 5 * np.std(decrease)] = np.mean(decrease)
-            #     increase[increase >= np.mean(increase) + 5 * np.std(increase)] = np.mean(increase)
 
             if len(decrease) and len(increase):
 
@@ -217,24 +212,27 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
         company_list = self.db.get_list_companies()
         total_companies = self.db.get_companies_count()
 
-        from_end = 1
-        max_items = self.db.get_max_rows() - from_end
+
+        max_items = self.db.get_max_rows()
 
         values = np.zeros((total_companies, max_items))
-
+        dates = np.zeros((total_companies, max_items), dtype=object)
         i = 0
         for k in company_list:
-            if i == 0:
-                _, dates_fetch = self.db.get_values_company(company_sym=k)
-            values_fetch, _ = self.db.get_values_company(company_sym=k, columns=column)
-            values_fetch = values_fetch[:-from_end]
+            # if i == 0:
+            #     _, dates_fetch = self.db.get_values_company(company_sym=k)
+            values_fetch, dates_fetch = self.db.get_values_company(company_sym=k, columns=column)
+            values_fetch = values_fetch
             values[i, max_items - len(values_fetch):max_items] = values_fetch
+
+            dates[i, max_items - len(dates_fetch):max_items] = dates_fetch
+
             i += 1
 
 
-        dates = dates_fetch[-self.days_to_eval:]
+        dates = dates[:, -self.days_to_eval-1:]
 
-        eval_samples = values[:, -self.days_to_eval-1:]
+        eval_samples = values[:, -self.days_to_eval-1-1:]
         prices = eval_samples[:, 1:]
 
         eval_samples = (eval_samples[:, 1:] - eval_samples[:, 0:-1]) / eval_samples[:, 0:-1]
@@ -246,86 +244,112 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
         return eval_samples, dates, prices
 
     def do_eval(self):
-        #load eval file
 
-        eval_data = self.load_model(self.eval_file)
-        print(eval_data)
-        exit()
-        day = 0
-        for k in eval_data:
-            days_count = len(eval_data[k]["dates"])
-        all_t, all_tp = 0,0
-        for day in range(1,days_count-1):
+        for k in self.eval_file:
+            if "weekly" in k.lower():
+                eval_data_weekly = self.load_model(k)
+            else:
+                eval_data_daily = self.load_model(k)
 
-            predict_day = eval_data[eval_data.keys()[0]]["dates"][day]
-            next_day = None
-            next_day_index = None
-            for iter, next_d in enumerate(eval_data[eval_data.keys()[0]]["daily_dates"]):
+        metrics = self.load_model(self.eval_metric_file)
 
-                if next_d > predict_day:
-                    next_day = next_d
-                    next_day_index = iter
-                    break
-            # print(predict_day, eval_data[eval_data.keys()[0]]["daily_dates"][next_day_index])
+        close_change, eval_dates, close_data = self.generate_eval_data(column="close")
+        _, _ , low_data = self.generate_eval_data(column="low")
+        _, _, high_data = self.generate_eval_data(column="high")
+        _, _, open_data = self.generate_eval_data(column="open")
+
+        simulations = 50
+        average_gain = []
+        for sim in range(simulations):
+            print("----------------------------------- Simulation %s --------------------------------" % sim)
+            cash = self.resource
+
+            holding = dict()
+            list_all_hold = set()
+            print("Total Resources %s" % self.resource)
+            for k in eval_data_daily.keys()[1:]:
+                holding[k] = []
+                daily_pred =  {"predictions": eval_data_daily[k-1]["pred"]}
+                weekly_pred = {"predictions": eval_data_weekly[k-1]["pred"]}
+                day_metrics = metrics[k]["metric"]
+
+                today = eval_data_daily[k-1]["dates"][-1]
+
+                stocks, qunts, buy_price, sell_price, sell_ratio, buy_ratio = self.generate_actions(day_metrics,
+                                                                                                    daily_pred,
+                                                                                                    weekly_pred,
+                                                                                                    close_change[:,k-1],
+                                                                                                    close_data[:,k-1],
+                                                                                                    resource=cash,
+                                                                                                    number_of_stocks=self.number_of_stocks,
+                                                                                                    dropout=self.dropout)
 
 
-            temp_predict_data = {}
-            temp_close_price, temp_high_price = np.zeros(len(self.company_list)), np.zeros(len(self.company_list))
-            for k in eval_data:
+                for st in range(len(stocks)):
+                    if eval_data_daily[k-1]["dates"][stocks[st]] != today:
+                        print("Skipping %s" % self.company_list[stocks[st]])
+                        continue
+                    if buy_price[st] >= open_data[stocks[st], k]:
+                        if stocks[st] not in list_all_hold:
+                            print("Buying %s for %s" % (self.company_list[stocks[st]], buy_price[st] * qunts[st]))
 
-                temp_predict_data[k] = {"prediction": [eval_data[k]["gt"][day-1], eval_data[k]["pred"][day-1]]}
-
-                temp_close_price[self.company_list.index(k)] = eval_data[k]["close"][day-1]
-
-                temp_high_price[self.company_list.index(k)] = eval_data[k]["high"][day-1]
-
-
-            stocks, qunts, buy_price, sell_price, sell_ratio, buy_ratio = self.generate_actions(temp_predict_data, np.array(temp_close_price), np.array(temp_high_price),
-                                                                                     resource=self.resource, number_of_stocks=self.number_of_stocks, dropout = self.dropout)
-
-            total = 0
-            total_p = 0
-            below_ask = 1
-            for k in range(len(stocks)):
-                try:
-                    bought = False
-                    # if buy_price[k] > eval_data[self.company_list[stocks[k]]]["high"][next_day_index]:
-                    #     buy_price[k] = eval_data[self.company_list[stocks[k]]]["close_daily"][next_day_index]
-                    #     bought = True
-                    if buy_price[k] > eval_data[self.company_list[stocks[k]]]["low"][next_day_index]:
-                        # buy_price[k] = eval_data[self.company_list[stocks[k]]]["close_daily"][next_day_index]
-                        bought = True
-                    portfolio = 0
-                    profit = 0
-                    this_sell_price = 0
-                    if bought:
-                        this_sell_price = buy_price[k] * sell_ratio[k]
-                        for follow_high in eval_data[self.company_list[stocks[k]]]["high"][next_day_index:]:
-                            if this_sell_price < follow_high:
-                                profit = (this_sell_price - buy_price[k]) * qunts[k]
-                                break
+                            cash = cash - open_data[stocks[st], k] * int(qunts[st])
+                            holding[k] += [{"stock": stocks[st], "sell_price": sell_price[st], "quants": int(qunts[st]), "status": "h",
+                                            "buy_price": open_data[stocks[st], k]}]
+                            list_all_hold.add(stocks[st])
                         else:
-                            # profit = (eval_data[self.company_list[stocks[k]]]["close"][-1] - buy_price[k]) * qunts[k]
-                            portfolio = (eval_data[self.company_list[stocks[k]]]["close"][-1] - buy_price[k]) * qunts[k]
-                        # if sell_price < eval_data[self.company_list[stocks[k]]]["high"][next_day_index:]:
-                        #     profit = sell_price-buy_price * qunts[k]
+                            print("Already holding %s" % self.company_list[stocks[st]])
 
-                    if profit:
-                        print(self.company_list[stocks[k]], qunts[k], buy_price[k],bought, this_sell_price, profit)
-                    else:
-                        print(self.company_list[stocks[k]], qunts[k], buy_price[k], bought, this_sell_price, portfolio)
+                    elif buy_price[st] >= low_data[stocks[st], k]:
+                        if stocks[st] not in list_all_hold:
+                            print("Buying %s for %s" % (self.company_list[stocks[st]], buy_price[st] * qunts[st]))
 
-                    total += profit
-                    total_p += portfolio
-                except:
-                    continue
-            print(total, total_p)
-            day += 1
-            all_t += total
-            all_tp += total_p
-        print(all_t, all_tp, all_t+all_tp)
+                            cash = cash - buy_price[st] * int(qunts[st])
+                            holding[k] += [{"stock": stocks[st], "sell_price": sell_price[st], "quants": int(qunts[st]), "status": "h",
+                                            "buy_price": buy_price[st]}]
+                            list_all_hold.add(stocks[st])
+                        else:
+                            print("Already holding %s" % self.company_list[stocks[st]])
 
 
+                for day in holding.keys():
+                    if k > day:
+                        for sell_st in holding[day]:
+                            if sell_st["status"] == "h":
+                                if sell_st["sell_price"] < open_data[sell_st["stock"], k]:
+                                    print("Selling %s for %s" % (
+                                    self.company_list[sell_st["stock"]], open_data[sell_st["stock"], k] * sell_st["quants"]))
+                                    cash += open_data[sell_st["stock"], k] * sell_st["quants"]
+                                    sell_st["status"] = 'n'
+                                    list_all_hold.remove(sell_st["stock"])
+                                elif sell_st["sell_price"] < high_data[sell_st["stock"], k]:
+                                    print("Selling %s for %s" % (self.company_list[sell_st["stock"]], sell_st["sell_price"] * sell_st["quants"]))
+                                    cash += sell_st["sell_price"] * sell_st["quants"]
+                                    sell_st["status"] = 'n'
+                                    list_all_hold.remove(sell_st["stock"])
+
+                stock_equity = 0
+                total_hold = []
+                for day in holding.keys():
+                    for holdst in holding[day]:
+                        if holdst["status"] == "h":
+                            stock_equity += holdst["quants"]*close_data[holdst["stock"], k]
+                            position = (close_data[holdst["stock"], k]-holdst["buy_price"])*holdst["quants"]
+                            total_hold += ["%s(%s)"  % (self.company_list[holdst["stock"]], position)]
+
+
+
+                Equity = cash + stock_equity
+
+                print("day %s, cash: %s, stock equity(%s) %s equity %s" % (k, cash, len(total_hold), stock_equity, Equity))
+                print(total_hold)
+
+            average_gain += [Equity]
+
+        print(average_gain)
+        print(np.mean(np.array(average_gain) - self.resource))
+
+        return 1
 
     def generate_pred_data(self, column = "open"):
         company_list = self.db.get_list_companies()
@@ -360,31 +384,28 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
         return pred_samples, dates, prices
 
 
-    def generate_actions(self, pred_data, close_prices, high_prices, resource, number_of_stocks, dropout = 0.25):
+    def generate_actions(self, hubber_parameters, pred_data_daily, pred_data_weekly, close_changes, close_prices, resource, number_of_stocks, dropout = 0.25):
 
         list_possible = []
 
-        for k in pred_data:
-            # if pred_data[k]["prediction"][0] == 0 and pred_data[k]["prediction"][1] ==  2:
-            #     list_possible += [k]
+        for ind, k in enumerate(hubber_parameters):
+            if k[0] > 0.02 and pred_data_daily["predictions"][ind] == 0 and pred_data_weekly["predictions"][ind] == 2:
+                list_possible += [ind]
 
-            # if pred_data[k]["prediction"][0] == 1 and pred_data[k]["prediction"][1] == 2:
-            #     list_possible += [k]
 
-            # if pred_data[k]["prediction"][0] == 0 & pred_data[k]["prediction"][1] == 2:
-            #     list_possible += [k]
-            if pred_data[k]["prediction"][0] == 0 and pred_data[k]["prediction"][1] == 2:
-                list_possible += [k]
+        filtered_close_changes = np.ones(close_changes.shape)*100
+        filtered_close_changes[list_possible] = close_changes[list_possible]
 
-        # get prices
+        optimizer = Optimize()
+        stock, quantitites = optimizer.random_selection(filtered_close_changes.flatten(), close_prices.flatten(),
+                                                        resource=resource, number_of_stocks=number_of_stocks,
+                                                        dropout=dropout)
 
-        predictions = np.zeros(len(self.company_list))
+        # predictions = np.zeros(len(self.company_list))
         drop = np.zeros(len(self.company_list))
         pop = np.zeros(len(self.company_list))
 
-
-        for i in range(len(self.company_list)):
-
+        for i in list_possible:
             while True:
                 if self.gaussian_parameters_delta[i]["decrease"][0] and self.gaussian_parameters_delta[i]["decrease"][1]:
                     tempdrop = np.random.normal(self.gaussian_parameters_delta[i]["decrease"][0],
@@ -392,7 +413,7 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
                 else:
                     tempdrop = 0
                     break
-                #tempdrop = self.gaussian_parameters_delta[i]["decrease"][0]
+
                 if tempdrop < 0 and tempdrop >= self.gaussian_parameters_delta[i]["decrease"][0]:
                     break;
 
@@ -413,32 +434,10 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
             pop[i] = temppop
 
 
-            if self.company_list[i] in list_possible:
-                # print((1+drop[i]), (1+drop[i])*(1+pop[i]), (1+drop[i]) - (1+drop[i])*(1+pop[i]))
-                # predictions[i] = (1+drop[i]) - (1+drop[i])*(1+pop[i])
-                predictions[i] = (1+drop[i])
-            else:
-                predictions[i] = 0
-
-        optimizer = Optimize()
-        stock, quantitites = optimizer.random_selection(predictions, close_prices.flatten(), high_prices, resource=resource, number_of_stocks=number_of_stocks, dropout = dropout)
-
         buy_prices, sell_price = [], []
-        # sell_ratio = []
-        # for k in stock:
-        #     # print(k, drop[k], pop[k])
-        #     print("Close: ", close_prices[k], "Drop: ", (1 + drop[k]))
-        #     # print(close_prices[k], close_prices[k] * (1+drop[k]), close_prices[k] * (1+drop[k]) * (1+pop[k]))
-        #     buy_prices += [close_prices[k] * (1+drop[k])]
-        #     sell_price += [close_prices[k] * (1+drop[k]) * (1+pop[k])]
-        #     sell_ratio += [(1+pop[k])]
-        #
-        # return stock, quantitites, buy_prices, sell_price, sell_ratio
         sell_ratio, buy_ratio = [], []
+
         for k in stock:
-            # print(k, drop[k], pop[k])
-            print("Close: ", close_prices[k], "Drop: ", (1 + drop[k]))
-            # print(close_prices[k], close_prices[k] * (1+drop[k]), close_prices[k] * (1+drop[k]) * (1+pop[k]))
             buy_prices += [close_prices[k] * (1 + drop[k])]
             sell_price += [close_prices[k] * (1 + drop[k]) * (1 + pop[k])]
             sell_ratio += [(1 + pop[k])]
@@ -446,37 +445,49 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
 
         return stock, quantitites, buy_prices, sell_price, sell_ratio, buy_ratio
 
-
-
     def do_action(self):
 
         for k in self.pred_file:
-            if "weekly" in k:
+            if "weekly" in k.lower():
                 pred_data_weekly = self.load_model(k)
             else:
                 pred_data_daily = self.load_model(k)
 
         metrics = self.load_model(self.pred_metric_file)
 
-        exit()
-        # load pred file
-        pred_data = self.load_model(self.pred_file)
-        _, dates, close_prices = self.generate_pred_data(column="close")
-        high_price = self.get_prices(column1="high")
+        close_changes, dates, close_prices = self.generate_pred_data(column="close")
 
-        stocks, qunts, buy_price, sell_price, sell_ratio, buy_ratio = self.generate_actions(pred_data, close_prices, high_price,
+        stocks, qunts, buy_price, sell_price, sell_ratio, buy_ratio = self.generate_actions(metrics, pred_data_daily, pred_data_weekly, close_changes, close_prices,
                                                                                  resource=self.resource, number_of_stocks=self.number_of_stocks, dropout=self.dropout)
 
         actions = {}
+
+        def get_next_day_delta(this_date):
+            if this_date.weekday() == 4:
+                return this_date + datetime.timedelta(days = 3)
+            elif this_date.weekday() == 5:
+                return this_date + datetime.timedelta(days = 2)
+            else:
+                return this_date + datetime.timedelta(days=1)
+
         for k in range(len(stocks)):
             print(stocks[k], self.company_list[stocks[k]], qunts[k], buy_price[k], sell_price[k])
+
+            current_date = datetime.datetime.strptime(pred_data_daily["dates"][stocks[k]], '%Y-%m-%d')
+
+            this_buy_exp = get_next_day_delta(current_date)
+            this_sell_exp = current_date + datetime.timedelta(days=7)
+
+            this_buy_exp = datetime.datetime.strftime(this_buy_exp, '%Y-%m-%d')
+            this_sell_exp = datetime.datetime.strftime(this_sell_exp, '%Y-%m-%d')
 
             actions[self.company_list[stocks[k]]]={"quantity": qunts[k], "buy": buy_price[k], "sell": sell_price[k],
                                                    "sell_ratio": sell_ratio[k],
                                                    "buy_ratio": buy_ratio[k],
-                                                   "buy_exp":pred_data[self.company_list[stocks[k]]]["date"][0],
-                                                   "sell_exp":pred_data[self.company_list[stocks[k]]]["date"][1]}
+                                                   "buy_exp": this_buy_exp,
+                                                   "sell_exp": this_sell_exp}
 
+        print(actions)
         self.save_pred_output(actions)
 
     def save_pred_output(self, data):
