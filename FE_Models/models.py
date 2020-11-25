@@ -3,18 +3,18 @@ import pickle, datetime, logging, os
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix
 # import matplotlib.pyplot as plt
-from pyramid.arima import auto_arima
-
-from keras.models import Sequential, Model
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers import Dropout, Input, Add
-from keras.layers import Activation, AveragePooling1D
-from keras.layers.normalization import BatchNormalization
-from keras.layers.convolutional import Conv1D, Conv2D
-from keras.layers.convolutional import MaxPooling1D, MaxPooling2D
-from keras.utils import to_categorical
-from keras.optimizers import Adam
+# from pyramid.arima import auto_arima
+#
+# from keras.models import Sequential, Model
+# from keras.layers import Dense
+# from keras.layers import Flatten
+# from keras.layers import Dropout, Input, Add
+# from keras.layers import Activation, AveragePooling1D
+# from keras.layers.normalization import BatchNormalization
+# from keras.layers.convolutional import Conv1D, Conv2D
+# from keras.layers.convolutional import MaxPooling1D, MaxPooling2D
+# from keras.utils import to_categorical
+# from keras.optimizers import Adam
 
 logging = logging.getLogger("main")
 

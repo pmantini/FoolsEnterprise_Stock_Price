@@ -1,14 +1,14 @@
-from scipy.optimize import linprog
-import numpy as np
+# from scipy.optimize import linprog
+
 import numpy as np
 import os, logging, pickle
 from FE_Models.model_DB_Reader import DB_Ops
 from FE_Models.optimize import Optimize
-import json
+# import json
 from setup import mount_folder
 import datetime
 # import matplotlib.pyplot as plt
-from scipy import stats
+# from scipy import stats
 
 logging = logging.getLogger("main")
 
