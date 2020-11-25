@@ -2,7 +2,7 @@ from FE_Models.model_DB_Reader import DB_Ops
 import pickle, datetime, logging, os
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from pyramid.arima import auto_arima
 
 from keras.models import Sequential, Model
