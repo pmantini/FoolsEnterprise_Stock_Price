@@ -33,8 +33,8 @@ class Alpaca(FEPortfolio):
 
     def __init__(self, args):
         self.name = self.__class__.__name__
-        self.req_args = ['strategy', 'live', 'liquidateifcannotsell']
-        self.opt_args = ['output_dir', 'actions']
+        self.req_args = ['strategy', 'live']
+        self.opt_args = ['output_dir', 'actions', 'liquidateifcannotsell']
         FEPortfolio.__init__(self, self.name, self.req_args, self.opt_args)
 
         self.current_state = None
@@ -43,7 +43,7 @@ class Alpaca(FEPortfolio):
 
 
         self.live = int(args.arg["live"])
-        self.liquidateifcannotsell = int(args.arg["liquidateifcannotsell"])
+        self.liquidateifcannotsell = int(args.arg["liquidateifcannotsell"]) if "liquidateifcannotsell" in args.arg.keys() else 0
         self.strategy = [k.strip() for k in args.arg["strategy"].split(",")]
 
         self.strategy_actions = None
@@ -307,16 +307,15 @@ class Alpaca(FEPortfolio):
         self.generate_current_state()
         self.generate_desired_state()
 
-        for k  in enumerate(self.current_state):
-
+        for k in enumerate(self.current_state):
 
             if self.current_state[k[0]] != self.desired_state[k[0]]:
-                # print(self.assets[k[0]], self.stock_position_name[k[1]], self.stock_position_name[self.desired_state[k[0]]])
+
                 this_asset = self.assets[k[0]]
 
                 if self.stock_position_name[self.current_state[k[0]]] == "holding" and self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
                     print("Already holding %s, passing limit_buy order" % this_asset)
-                    pass
+                    continue
 
                 if self.stock_position_name[self.desired_state[k[0]]] == "limit_buy":
                     print("limit buy: ", this_asset)
@@ -324,7 +323,7 @@ class Alpaca(FEPortfolio):
                         print("skipping buy: actions =  %s" % self.actions)
                         print("-------------------------------")
                         continue
-                    #to avoid investing in ARCA
+
                     try:
                         if self.investment_ac.get_asset(this_asset).exchange in self.avoid_exchange:
                             print("Skipping %s, because it belongs to exchnage %s" % (this_asset, self.investment_ac.get_asset(this_asset).exchange))
@@ -333,28 +332,10 @@ class Alpaca(FEPortfolio):
 
 
                         buy_order_name = datetime.today().strftime('%Y-%m-%d-%H')+this_asset+"___"+self.strategy_actions[this_asset]["buy_exp"]
-                        # buy_order_name = this_asset + "___" + (datetime.today() - timedelta(days=2)).strftime(
-                        #     '%Y-%m-%d')
-                        # order_resp = self.investment_ac.order(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
-                        #                                       "buy", self.strategy_actions[this_asset]["buy"][0], buy_order_name)
 
-                        current_price = self.investment_ac.get_last_price(this_asset)
-                        print("Current price: %s, Buy price: %s" % (current_price, self.strategy_actions[this_asset]["buy"][0]))
-
-                        if current_price <= self.strategy_actions[this_asset]["buy"][0]:
-                            print("place order with 0.99 trailing percent")
-                            order_resp = self.investment_ac.order_Trailing(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
-                                            "buy", buy_order_name, trail_percent=0.99)
-                            print(order_resp)
-                        else:
-                            print("Skipping buy order as %s > %s" % (current_price, self.strategy_actions[this_asset]["buy"][0]))
-                            pass
-                        # elif self.strategy_actions[this_asset]["buy_ratio"] * current_price <=  self.strategy_actions[this_asset]["buy"][0]:
-                        #     print("place order with %s trailing percent" % self.strategy_actions[this_asset]["buy_ratio"])
-                        #     order_resp = self.investment_ac.order_Trailing(this_asset, int(
-                        #         self.strategy_actions[this_asset]["quantity"]),
-                        #                                                    "buy", buy_order_name, trail_percent=self.strategy_actions[this_asset]["buy_ratio"])
-
+                        order_resp = self.investment_ac.order(this_asset, int(self.strategy_actions[this_asset]["quantity"]),
+                                                              "buy", self.strategy_actions[this_asset]["buy"][0], buy_order_name)
+                        print(order_resp)
 
                     except:
                         print("Unexpected error:", sys.exc_info())
@@ -369,10 +350,7 @@ class Alpaca(FEPortfolio):
                         continue
 
                     try:
-
                         avg_buy_price = self.investment_ac.get_position(this_asset).avg_entry_price
-                        stop_loss_price = float(avg_buy_price)*0.8
-                        limit_sell_l = float(stop_loss_price)*0.99
 
                         if this_asset in self.sell_info.keys():
                             new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
@@ -382,15 +360,10 @@ class Alpaca(FEPortfolio):
                             sell_order_name = datetime.today().strftime('%Y-%m-%d-%H')+this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
                                 '%Y-%m-%d')
 
-                        # new_sell_price = float(avg_buy_price) * float(self.sell_info[this_asset]["sell_ratio"])
-                        # sell_order_name = this_asset + "___" + self.sell_info[this_asset]["sell_exp"]
-                        # sell_order_name = this_asset + "___" + (datetime.today() + timedelta(days=1)).strftime(
-                        #     '%Y-%m-%d')
                         available_qty = self.investment_ac.get_position(this_asset).qty
                         order_resp = self.investment_ac.order(this_asset, int(available_qty), "sell",
                                                  new_sell_price, sell_order_name)
-                        # order_resp = self.investment_ac.order_OCO(this_asset, int(available_qty), "sell",
-                        #                                       new_sell_price, stop_loss_price, limit_sell_l, sell_order_name)
+
                         print(order_resp)
 
                     except:
@@ -405,12 +378,6 @@ class Alpaca(FEPortfolio):
                         self.investment_ac.cancel_order(order_id)
 
                 print("-------------------------------")
-                # if self.stock_position_name[self.desired_state[k[0]]] == "limit_sell" and \
-                #         self.stock_position_name[self.current_state[k[0]]] == "liquidate":
-                #         order_id = self.list_of_orders[this_asset].id
-                #         print("Liqudating asset %s, %s" % (order_id, this_asset))
-                #         self.investment_ac.cancel_order(order_id)
-                #         self.investment_ac.liquidate_position(this_asset)
 
 
         self.save_sell_info()
