@@ -156,9 +156,13 @@ class HubberRegressionDaily(FEMetrics):
             # model.fit(x, y)
 
             if y.shape[0] > 100:
-                model.fit(x, y)
+                try:
+                    model.fit(x, y)
 
-                reg_data += [[model.coef_[0], model.scale_, model.intercept_]]
+                    reg_data += [[model.coef_[0], model.scale_, model.intercept_]]
+                except:
+                    logging.info("--------------- %s Unable to fit -------------" % ind)
+                    reg_data += [[-100, 0, 0]]
 
             else:
                 logging.info("--------------- %s unreliable, < 100 days of data available -------------" % ind)
