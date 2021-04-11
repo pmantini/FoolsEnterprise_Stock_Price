@@ -38,24 +38,24 @@ class Optimize:
 
         return choices, qunatities
 
-    def random_selection(self, close_changes, prices, resource=5000, number_of_stocks=6, min_price = 5, dropout = 0.25):
+    def random_selection(self, predictions, stock_indices, prices, resource=5000, number_of_stocks=6, min_price = 5, dropout = 0.25):
 
         def get_resources(investments=[1500, 1000, 500, 250, 175, 75]):
             investments = [2*(k+1)*resource/((number_of_stocks+1)*number_of_stocks) for k in range(number_of_stocks)]
             for k in reversed(investments):
                 yield k
 
-
-        best_ops = np.argsort(close_changes)
+        reorder_indices = []
+        best_ops = np.argsort(predictions)
 
         choices, quantities = [], []
 
         resource_gen = get_resources()
         current_resource = next(resource_gen)
         for best in best_ops:
-            if close_changes[best] > 0:
-                continue
-            if prices[best] < min_price:
+            stock_index = stock_indices[best]
+
+            if prices[stock_index] < min_price:
                 continue
 
 
@@ -63,14 +63,15 @@ class Optimize:
                 print(best, ":Droped out")
                 continue
 
-            if prices[best] < current_resource:
-                choices += [best]
-                quantities += [current_resource / prices[best]]
+            if prices[stock_index] < current_resource:
+                reorder_indices += [best]
+                choices += [stock_index]
+                quantities += [current_resource / prices[stock_index]]
                 try:
                     current_resource = next(resource_gen)
                 except:
                     break
-        return choices, quantities
+        return choices, quantities, reorder_indices
 
 
     def random_selection_penny(self, close_changes, prices, resource=5000, number_of_stocks=6, dropout = 0.25):

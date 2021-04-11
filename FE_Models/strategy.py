@@ -267,6 +267,7 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
             holding = dict()
             list_all_hold = set()
             print("Total Resources %s" % self.resource)
+
             for k in eval_data_daily.keys()[1:]:
                 # self.number_of_stock = cash // 1000
                 holding[k] = []
@@ -290,20 +291,27 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
                     if eval_data_daily[k-1]["dates"][stocks[st]] != today:
                         print("Skipping %s" % self.company_list[stocks[st]])
                         continue
+
                     if buy_price[st] >= open_data[stocks[st], k]:
                         if stocks[st] not in list_all_hold:
-                            print("Buying %s for %s" % (self.company_list[stocks[st]], buy_price[st] * qunts[st]))
+                            # print("(open) Buying %s for %s" % (self.company_list[stocks[st]], open_data[stocks[st], k] * qunts[st]))
+                            print("(open) Buying %s %s for %s - %s" % (int(qunts[st]),
+                            self.company_list[stocks[st]], open_data[stocks[st], k], int(qunts[st])*open_data[stocks[st], k]))
 
                             cash = cash - open_data[stocks[st], k] * int(qunts[st])
-                            holding[k] += [{"stock": stocks[st], "sell_price": sell_price[st], "quants": int(qunts[st]), "status": "h",
+                            holding[k] += [{"stock": stocks[st], "sell_price": open_data[stocks[st], k]*sell_ratio[st], "quants": int(qunts[st]), "status": "h",
                                             "buy_price": open_data[stocks[st], k]}]
+
                             list_all_hold.add(stocks[st])
                         else:
                             print("Already holding %s" % self.company_list[stocks[st]])
 
                     elif buy_price[st] >= low_data[stocks[st], k]:
                         if stocks[st] not in list_all_hold:
-                            print("Buying %s for %s" % (self.company_list[stocks[st]], buy_price[st] * qunts[st]))
+                            # print("(iDay) Buying %s for %s" % (self.company_list[stocks[st]], buy_price[st] * qunts[st]))
+                            print(
+                                "(iDay) Buying %s %s for %s - %s" % (int(qunts[st]), self.company_list[stocks[st]], buy_price[st],
+                                                                     int(qunts[st])*buy_price[st]))
 
                             cash = cash - buy_price[st] * int(qunts[st])
                             holding[k] += [{"stock": stocks[st], "sell_price": sell_price[st], "quants": int(qunts[st]), "status": "h",
@@ -318,13 +326,18 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
                         for sell_st in holding[day]:
                             if sell_st["status"] == "h":
                                 if sell_st["sell_price"] < open_data[sell_st["stock"], k]:
-                                    print("Selling %s for %s" % (
-                                    self.company_list[sell_st["stock"]], open_data[sell_st["stock"], k] * sell_st["quants"]))
+                                    # print("(open) Selling %s for %s" % (
+                                    # self.company_list[sell_st["stock"]], open_data[sell_st["stock"], k] * sell_st["quants"]))
+                                    print("(open) Selling %s %s for %s - %s" % (sell_st["quants"],
+                                        self.company_list[sell_st["stock"]],
+                                        open_data[sell_st["stock"], k], sell_st["quants"]*open_data[sell_st["stock"], k]))
                                     cash += open_data[sell_st["stock"], k] * sell_st["quants"]
                                     sell_st["status"] = 'n'
                                     list_all_hold.remove(sell_st["stock"])
                                 elif sell_st["sell_price"] < high_data[sell_st["stock"], k]:
-                                    print("Selling %s for %s" % (self.company_list[sell_st["stock"]], sell_st["sell_price"] * sell_st["quants"]))
+                                    # print("(iDay) Selling %s for %s" % (self.company_list[sell_st["stock"]], sell_st["sell_price"] * sell_st["quants"]))
+                                    print("(iDay) Selling %s, %s for %s - %s" % (sell_st["quants"],
+                                    self.company_list[sell_st["stock"]], sell_st["sell_price"], sell_st["quants"]*sell_st["sell_price"]))
                                     cash += sell_st["sell_price"] * sell_st["quants"]
                                     sell_st["status"] = 'n'
                                     list_all_hold.remove(sell_st["stock"])
@@ -394,19 +407,14 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
                 list_possible += [ind]
 
 
-        filtered_close_changes = np.ones(close_changes.shape)*100
-        filtered_close_changes[list_possible] = close_changes[list_possible]
+        # filtered_close_changes = np.ones(close_changes.shape)*100
+        # filtered_close_changes[list_possible] = close_changes[list_possible]
 
-        optimizer = Optimize()
-        stock, quantitites = optimizer.random_selection(filtered_close_changes.flatten(), close_prices.flatten(),
-                                                        resource=resource, number_of_stocks=number_of_stocks,
-                                                        dropout=dropout)
+        predictions = np.zeros(len(list_possible))
+        drop = np.zeros(len(list_possible))
+        pop = np.zeros(len(list_possible))
 
-        # predictions = np.zeros(len(self.company_list))
-        drop = np.zeros(len(self.company_list))
-        pop = np.zeros(len(self.company_list))
-
-        for i in list_possible:
+        for ind, i in enumerate(list_possible):
             while True:
                 if self.gaussian_parameters_delta[i]["decrease"][0] and self.gaussian_parameters_delta[i]["decrease"][1]:
                     tempdrop = np.random.normal(self.gaussian_parameters_delta[i]["decrease"][0],
@@ -431,18 +439,30 @@ class RandomSelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
                     break;
 
 
-            drop[i] = tempdrop
-            pop[i] = temppop
+            drop[ind] = tempdrop
+            pop[ind] = temppop
 
+
+            predictions[ind] = (1+drop[ind]) - (1+drop[ind])*(1+pop[ind])
+
+
+        optimizer = Optimize()
+        # stock, quantitites = optimizer.random_selection(filtered_close_changes.flatten(), close_prices.flatten(),
+        #                                                 resource=resource, number_of_stocks=number_of_stocks,
+        #                                                 dropout=dropout)
+        stock, quantitites, reordered_indices = optimizer.random_selection(predictions, list_possible, close_prices.flatten(),
+                                                            resource=resource, number_of_stocks=number_of_stocks,
+                                                            dropout=dropout)
 
         buy_prices, sell_price = [], []
         sell_ratio, buy_ratio = [], []
 
-        for k in stock:
-            buy_prices += [close_prices[k] * (1 + drop[k])]
-            sell_price += [close_prices[k] * (1 + drop[k]) * (1 + pop[k])]
-            sell_ratio += [(1 + pop[k])]
-            buy_ratio += [(1 + drop[k])]
+        for k, reindex in zip(stock, reordered_indices):
+
+            buy_prices += [close_prices[k] * (1 + drop[reindex])]
+            sell_price += [close_prices[k] * (1 + drop[reindex]) * (1 + pop[reindex])]
+            sell_ratio += [(1 + pop[reindex])]
+            buy_ratio += [(1 + drop[reindex])]
 
         return stock, quantitites, buy_prices, sell_price, sell_ratio, buy_ratio
 
@@ -878,12 +898,7 @@ class RandomPennySelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
         filtered_close_changes = np.ones(close_changes.shape)*100
         filtered_close_changes[list_possible] = close_changes[list_possible]
 
-        optimizer = Optimize()
-        stock, quantitites = optimizer.random_selection_penny(filtered_close_changes.flatten(), close_prices.flatten(),
-                                                        resource=resource, number_of_stocks=number_of_stocks,
-                                                        dropout=dropout)
-
-        # predictions = np.zeros(len(self.company_list))
+        # predictions = np.zeros(len(list_possible))
         drop = np.zeros(len(self.company_list))
         pop = np.zeros(len(self.company_list))
 
@@ -915,6 +930,12 @@ class RandomPennySelectionPositiveHubberMarkovDailyWeekly(FEStrategy):
             drop[i] = tempdrop
             pop[i] = temppop
 
+            # predictions[ind] = (1 + drop[ind]) - (1 + drop[ind]) * (1 + pop[ind])
+
+        optimizer = Optimize()
+        stock, quantitites = optimizer.random_selection_penny(filtered_close_changes.flatten(), close_prices.flatten(),
+                                                              resource=resource, number_of_stocks=number_of_stocks,
+                                                              dropout=dropout)
 
         buy_prices, sell_price = [], []
         sell_ratio, buy_ratio = [], []
